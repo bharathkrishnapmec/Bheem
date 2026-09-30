@@ -1,0 +1,33 @@
+/** Colours from UI_DESIGN.md §3.1 (hero) and §6.1 (FX palette). */
+export const PAL = {
+  outline: 0x1e1b2e,
+  hood: 0x3a4062,
+  hoodDark: 0x2a2f4a,
+  tunic: 0x2e6db4,
+  tunicDark: 0x1f4f88,
+  scarf: 0xd8392b,
+  scarfDark: 0x9e2419,
+  skin: 0xf0b088,
+  gold: 0xd9a23a,
+  brown: 0x6a4028,
+  ruinViolet: 0x7b3fe4,
+  ruinGlow: 0xc58bff,
+  lightning: 0xffffff,
+  danger: 0xff3b30,
+  cleanseGold: 0xffd25a,
+  statusCyan: 0x5ee6f2,
+  bg: 0x14101f,
+  panel: 0x1a1628,
+  panelLight: 0x2b2540,
+  panelEdge: 0x4a4266,
+  parchment: 0xe8d5a8,
+  parchmentDark: 0xb89968,
+  white: 0xffffff,
+  ichor: 0x3b1450,
+  ember: 0xff9a3c,
+  heal: 0x6bff8a,
+  prana: 0x4fb4ff,
+  allyGold: 0xffe28a,
+} as const;
+
+export const hex = (c: number): string => '#' + c.toString(16).padStart(6, '0');

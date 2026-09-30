@@ -1,0 +1,1222 @@
+{
+ "width": 10400,
+ "height": 1200,
+ "groundY": 1040,
+ "playerStart": {
+  "x": 140,
+  "y": 1040
+ },
+ "solids": [
+  {
+   "x": -40,
+   "y": 0,
+   "w": 40,
+   "h": 1200
+  },
+  {
+   "x": 10400,
+   "y": 0,
+   "w": 40,
+   "h": 1200
+  },
+  {
+   "x": 0,
+   "y": 1040,
+   "w": 1480,
+   "h": 160
+  },
+  {
+   "x": 1480,
+   "y": 1140,
+   "w": 80,
+   "h": 60
+  },
+  {
+   "x": 1560,
+   "y": 1040,
+   "w": 2140,
+   "h": 160
+  },
+  {
+   "x": 3700,
+   "y": 1140,
+   "w": 80,
+   "h": 60
+  },
+  {
+   "x": 3780,
+   "y": 1040,
+   "w": 1420,
+   "h": 160
+  },
+  {
+   "x": 5200,
+   "y": 1016,
+   "w": 48,
+   "h": 184
+  },
+  {
+   "x": 5248,
+   "y": 992,
+   "w": 48,
+   "h": 208
+  },
+  {
+   "x": 5296,
+   "y": 968,
+   "w": 48,
+   "h": 232
+  },
+  {
+   "x": 5344,
+   "y": 944,
+   "w": 48,
+   "h": 256
+  },
+  {
+   "x": 5392,
+   "y": 920,
+   "w": 48,
+   "h": 280
+  },
+  {
+   "x": 5440,
+   "y": 896,
+   "w": 48,
+   "h": 304
+  },
+  {
+   "x": 5488,
+   "y": 872,
+   "w": 48,
+   "h": 328
+  },
+  {
+   "x": 5536,
+   "y": 848,
+   "w": 48,
+   "h": 352
+  },
+  {
+   "x": 5584,
+   "y": 824,
+   "w": 48,
+   "h": 376
+  },
+  {
+   "x": 5632,
+   "y": 800,
+   "w": 48,
+   "h": 400
+  },
+  {
+   "x": 5680,
+   "y": 800,
+   "w": 1220,
+   "h": 400
+  },
+  {
+   "x": 6900,
+   "y": 824,
+   "w": 28,
+   "h": 376
+  },
+  {
+   "x": 6928,
+   "y": 848,
+   "w": 28,
+   "h": 352
+  },
+  {
+   "x": 6956,
+   "y": 872,
+   "w": 28,
+   "h": 328
+  },
+  {
+   "x": 6984,
+   "y": 896,
+   "w": 28,
+   "h": 304
+  },
+  {
+   "x": 7012,
+   "y": 920,
+   "w": 28,
+   "h": 280
+  },
+  {
+   "x": 7040,
+   "y": 944,
+   "w": 28,
+   "h": 256
+  },
+  {
+   "x": 7068,
+   "y": 968,
+   "w": 28,
+   "h": 232
+  },
+  {
+   "x": 7096,
+   "y": 992,
+   "w": 28,
+   "h": 208
+  },
+  {
+   "x": 7124,
+   "y": 1016,
+   "w": 28,
+   "h": 184
+  },
+  {
+   "x": 7152,
+   "y": 1040,
+   "w": 28,
+   "h": 160
+  },
+  {
+   "x": 7180,
+   "y": 1040,
+   "w": 3220,
+   "h": 160
+  }
+ ],
+ "oneWays": [
+  {
+   "x": 700,
+   "y": 960,
+   "w": 160,
+   "h": 16
+  },
+  {
+   "x": 1150,
+   "y": 960,
+   "w": 120,
+   "h": 16
+  },
+  {
+   "x": 1260,
+   "y": 880,
+   "w": 130,
+   "h": 16
+  },
+  {
+   "x": 2060,
+   "y": 960,
+   "w": 180,
+   "h": 16
+  },
+  {
+   "x": 2750,
+   "y": 960,
+   "w": 150,
+   "h": 16
+  },
+  {
+   "x": 2950,
+   "y": 880,
+   "w": 150,
+   "h": 16
+  },
+  {
+   "x": 3150,
+   "y": 800,
+   "w": 200,
+   "h": 16
+  },
+  {
+   "x": 3420,
+   "y": 800,
+   "w": 200,
+   "h": 16
+  },
+  {
+   "x": 3680,
+   "y": 880,
+   "w": 170,
+   "h": 16
+  },
+  {
+   "x": 3900,
+   "y": 800,
+   "w": 140,
+   "h": 16
+  },
+  {
+   "x": 4020,
+   "y": 720,
+   "w": 170,
+   "h": 16
+  },
+  {
+   "x": 4250,
+   "y": 960,
+   "w": 130,
+   "h": 16
+  },
+  {
+   "x": 5880,
+   "y": 720,
+   "w": 200,
+   "h": 16
+  },
+  {
+   "x": 6120,
+   "y": 640,
+   "w": 200,
+   "h": 16
+  },
+  {
+   "x": 6380,
+   "y": 720,
+   "w": 160,
+   "h": 16
+  },
+  {
+   "x": 6600,
+   "y": 640,
+   "w": 160,
+   "h": 16
+  },
+  {
+   "x": 7880,
+   "y": 960,
+   "w": 220,
+   "h": 16
+  },
+  {
+   "x": 8100,
+   "y": 880,
+   "w": 140,
+   "h": 16
+  },
+  {
+   "x": 9150,
+   "y": 945,
+   "w": 180,
+   "h": 16
+  },
+  {
+   "x": 10020,
+   "y": 945,
+   "w": 180,
+   "h": 16
+  }
+ ],
+ "hazards": [
+  {
+   "x": 1480,
+   "y": 1110,
+   "w": 80,
+   "h": 30
+  },
+  {
+   "x": 3700,
+   "y": 1110,
+   "w": 80,
+   "h": 30
+  }
+ ],
+ "districts": [
+  {
+   "id": "gate",
+   "name": "Gate & Outskirts",
+   "bounds": {
+    "x0": 0,
+    "x1": 2400
+   },
+   "startTrigger": {
+    "x": 480,
+    "y": 0,
+    "w": 60,
+    "h": 1200
+   },
+   "exitGate": {
+    "x": 2388,
+    "y": 1040,
+    "h": 240
+   },
+   "shrine": {
+    "x": 230,
+    "y": 1040
+   },
+   "banner": {
+    "x": 2250,
+    "y": 1040,
+    "hp": 150
+   },
+   "captives": [
+    {
+     "x": 930,
+     "y": 1040
+    },
+    {
+     "x": 1760,
+     "y": 1040,
+     "guarded": true
+    },
+    {
+     "x": 2150,
+     "y": 960
+    }
+   ],
+   "chests": [
+    {
+     "x": 1330,
+     "y": 880,
+     "loot": {
+      "coins": 32
+     }
+    }
+   ],
+   "waves": [
+    {
+     "id": "1a",
+     "trigger": "onEnter",
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "raider",
+       "x": 1000,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 1080,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 1150,
+       "y": 1040,
+       "delayMs": 600
+      }
+     ]
+    },
+    {
+     "id": "1b",
+     "trigger": {
+      "afterWave": "1a"
+     },
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "raider",
+       "x": 1350,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 1420,
+       "y": 1040
+      },
+      {
+       "type": "boneArcher",
+       "x": 1300,
+       "y": 880
+      }
+     ]
+    },
+    {
+     "id": "1c",
+     "trigger": {
+      "x": 1640
+     },
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "raider",
+       "x": 1900,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 1980,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 1600,
+       "y": 1040,
+       "delayMs": 500
+      },
+      {
+       "type": "raider",
+       "x": 2050,
+       "y": 1040,
+       "delayMs": 900
+      }
+     ]
+    },
+    {
+     "id": "1d",
+     "trigger": {
+      "afterWave": "1c"
+     },
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "boneArcher",
+       "x": 2150,
+       "y": 960
+      },
+      {
+       "type": "boneArcher",
+       "x": 2300,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 2000,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 2080,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 1700,
+       "y": 1040,
+       "delayMs": 800
+      }
+     ]
+    }
+   ],
+   "ambient": [
+    {
+     "type": "brokenGate",
+     "x": 60,
+     "y": 1040
+    },
+    {
+     "type": "torch",
+     "x": 400,
+     "y": 1040
+    },
+    {
+     "type": "hay",
+     "x": 620,
+     "y": 1040
+    },
+    {
+     "type": "fence",
+     "x": 760,
+     "y": 1040
+    },
+    {
+     "type": "tree",
+     "x": 880,
+     "y": 1040
+    },
+    {
+     "type": "house",
+     "x": 1080,
+     "y": 1040
+    },
+    {
+     "type": "safehouse",
+     "x": 1180,
+     "y": 1040
+    },
+    {
+     "type": "torch",
+     "x": 1440,
+     "y": 1040
+    },
+    {
+     "type": "hay",
+     "x": 1650,
+     "y": 1040
+    },
+    {
+     "type": "house",
+     "x": 1900,
+     "y": 1040
+    },
+    {
+     "type": "safehouse",
+     "x": 1950,
+     "y": 1040
+    },
+    {
+     "type": "lamp",
+     "x": 2200,
+     "y": 1040
+    },
+    {
+     "type": "tree",
+     "x": 2330,
+     "y": 1040
+    }
+   ],
+   "weather": "none",
+   "cameraVertical": false
+  },
+  {
+   "id": "market",
+   "name": "Market Street",
+   "bounds": {
+    "x0": 2400,
+    "x1": 4800
+   },
+   "startTrigger": {
+    "x": 2640,
+    "y": 0,
+    "w": 60,
+    "h": 1200
+   },
+   "exitGate": {
+    "x": 4788,
+    "y": 1040,
+    "h": 240
+   },
+   "shrine": {
+    "x": 2520,
+    "y": 1040
+   },
+   "banner": {
+    "x": 4640,
+    "y": 1040,
+    "hp": 150
+   },
+   "captives": [
+    {
+     "x": 3020,
+     "y": 1040
+    },
+    {
+     "x": 3520,
+     "y": 800
+    },
+    {
+     "x": 4330,
+     "y": 1040,
+     "guarded": true
+    }
+   ],
+   "chests": [
+    {
+     "x": 4110,
+     "y": 720,
+     "loot": {
+      "coins": 36
+     }
+    },
+    {
+     "x": 2830,
+     "y": 960,
+     "loot": {
+      "health": 15,
+      "arrows": 8
+     }
+    }
+   ],
+   "waves": [
+    {
+     "id": "2a",
+     "trigger": "onEnter",
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "raider",
+       "x": 3050,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 3120,
+       "y": 1040
+      },
+      {
+       "type": "mireHexer",
+       "x": 3350,
+       "y": 1040
+      }
+     ]
+    },
+    {
+     "id": "2b",
+     "trigger": {
+      "afterWave": "2a"
+     },
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "skyCaller",
+       "x": 3600,
+       "y": 870
+      },
+      {
+       "type": "boneArcher",
+       "x": 3240,
+       "y": 800
+      },
+      {
+       "type": "boneArcher",
+       "x": 3500,
+       "y": 800
+      }
+     ]
+    },
+    {
+     "id": "2c",
+     "trigger": {
+      "afterWave": "2b"
+     },
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "raider",
+       "x": 4000,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 4080,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 3850,
+       "y": 1040,
+       "delayMs": 700
+      },
+      {
+       "type": "mireHexer",
+       "x": 4300,
+       "y": 1040
+      },
+      {
+       "type": "boneArcher",
+       "x": 4100,
+       "y": 720
+      }
+     ]
+    },
+    {
+     "id": "2d",
+     "trigger": {
+      "afterWave": "2c"
+     },
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "brute",
+       "x": 4450,
+       "y": 1040,
+       "elite": true
+      }
+     ]
+    }
+   ],
+   "ambient": [
+    {
+     "type": "lamp",
+     "x": 2600,
+     "y": 1040
+    },
+    {
+     "type": "stall",
+     "x": 2800,
+     "y": 1040
+    },
+    {
+     "type": "house",
+     "x": 3000,
+     "y": 1040
+    },
+    {
+     "type": "safehouse",
+     "x": 3080,
+     "y": 1040
+    },
+    {
+     "type": "stall",
+     "x": 3300,
+     "y": 1040
+    },
+    {
+     "type": "house",
+     "x": 3560,
+     "y": 1040
+    },
+    {
+     "type": "lamp",
+     "x": 3880,
+     "y": 1040
+    },
+    {
+     "type": "stall",
+     "x": 4100,
+     "y": 1040
+    },
+    {
+     "type": "house",
+     "x": 4400,
+     "y": 1040
+    },
+    {
+     "type": "safehouse",
+     "x": 4480,
+     "y": 1040
+    },
+    {
+     "type": "torch",
+     "x": 4720,
+     "y": 1040
+    }
+   ],
+   "weather": "rain",
+   "cameraVertical": true
+  },
+  {
+   "id": "temple",
+   "name": "Temple Hill",
+   "bounds": {
+    "x0": 4800,
+    "x1": 7200
+   },
+   "startTrigger": {
+    "x": 5020,
+    "y": 0,
+    "w": 60,
+    "h": 1200
+   },
+   "exitGate": {
+    "x": 7188,
+    "y": 1040,
+    "h": 240
+   },
+   "shrine": {
+    "x": 4920,
+    "y": 1040
+   },
+   "banner": {
+    "x": 6820,
+    "y": 800,
+    "hp": 150
+   },
+   "captives": [
+    {
+     "x": 5512,
+     "y": 872
+    },
+    {
+     "x": 6250,
+     "y": 800
+    },
+    {
+     "x": 6200,
+     "y": 640,
+     "guarded": true
+    }
+   ],
+   "chests": [
+    {
+     "x": 6680,
+     "y": 640,
+     "loot": {
+      "coins": 40
+     }
+    }
+   ],
+   "waves": [
+    {
+     "id": "3a",
+     "trigger": "onEnter",
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "brute",
+       "x": 5750,
+       "y": 800,
+       "elite": true
+      },
+      {
+       "type": "brute",
+       "x": 6000,
+       "y": 800,
+       "elite": true,
+       "delayMs": 4000
+      }
+     ]
+    },
+    {
+     "id": "3b",
+     "trigger": {
+      "afterWave": "3a"
+     },
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "skyCaller",
+       "x": 6100,
+       "y": 630
+      },
+      {
+       "type": "skyCaller",
+       "x": 6500,
+       "y": 630,
+       "delayMs": 1500
+      },
+      {
+       "type": "mireHexer",
+       "x": 6300,
+       "y": 800
+      },
+      {
+       "type": "mireHexer",
+       "x": 6650,
+       "y": 800
+      }
+     ]
+    },
+    {
+     "id": "3c",
+     "trigger": {
+      "afterWave": "3b"
+     },
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "brute",
+       "x": 6600,
+       "y": 800,
+       "elite": true
+      },
+      {
+       "type": "raider",
+       "x": 6400,
+       "y": 800
+      },
+      {
+       "type": "raider",
+       "x": 6480,
+       "y": 800
+      },
+      {
+       "type": "raider",
+       "x": 5800,
+       "y": 800,
+       "delayMs": 800
+      },
+      {
+       "type": "boneArcher",
+       "x": 6180,
+       "y": 640
+      },
+      {
+       "type": "boneArcher",
+       "x": 5950,
+       "y": 720
+      }
+     ]
+    },
+    {
+     "id": "3d",
+     "trigger": {
+      "afterWave": "3c"
+     },
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "brute",
+       "x": 6700,
+       "y": 800,
+       "elite": true
+      },
+      {
+       "type": "skyCaller",
+       "x": 6400,
+       "y": 630
+      },
+      {
+       "type": "mireHexer",
+       "x": 6550,
+       "y": 800
+      }
+     ]
+    }
+   ],
+   "ambient": [
+    {
+     "type": "pillar",
+     "x": 5080,
+     "y": 1040
+    },
+    {
+     "type": "pine",
+     "x": 5150,
+     "y": 1040
+    },
+    {
+     "type": "lamp",
+     "x": 5700,
+     "y": 800
+    },
+    {
+     "type": "temple",
+     "x": 6000,
+     "y": 800
+    },
+    {
+     "type": "ruinTower",
+     "x": 5800,
+     "y": 800
+    },
+    {
+     "type": "safehouse",
+     "x": 6080,
+     "y": 800
+    },
+    {
+     "type": "pillar",
+     "x": 6450,
+     "y": 800
+    },
+    {
+     "type": "ruinTower",
+     "x": 6560,
+     "y": 800
+    },
+    {
+     "type": "lamp",
+     "x": 6760,
+     "y": 800
+    },
+    {
+     "type": "pine",
+     "x": 7100,
+     "y": 1040
+    }
+   ],
+   "weather": "fog",
+   "cameraVertical": true
+  },
+  {
+   "id": "hall",
+   "name": "Chieftain's Hall",
+   "bounds": {
+    "x0": 7200,
+    "x1": 8800
+   },
+   "startTrigger": {
+    "x": 7440,
+    "y": 0,
+    "w": 60,
+    "h": 1200
+   },
+   "exitGate": {
+    "x": 8598,
+    "y": 1040,
+    "h": 240
+   },
+   "shrine": {
+    "x": 7310,
+    "y": 1040
+   },
+   "banner": {
+    "x": 8480,
+    "y": 1040,
+    "hp": 150
+   },
+   "captives": [
+    {
+     "x": 7700,
+     "y": 1040
+    },
+    {
+     "x": 7990,
+     "y": 960
+    },
+    {
+     "x": 8340,
+     "y": 1040,
+     "guarded": true
+    }
+   ],
+   "chests": [
+    {
+     "x": 8160,
+     "y": 880,
+     "loot": {
+      "coins": 30,
+      "health": 15
+     }
+    }
+   ],
+   "waves": [
+    {
+     "id": "4a",
+     "trigger": "onEnter",
+     "requiredToClear": true,
+     "spawns": [
+      {
+       "type": "raider",
+       "x": 7800,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 7880,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 8000,
+       "y": 1040
+      },
+      {
+       "type": "raider",
+       "x": 7600,
+       "y": 1040,
+       "delayMs": 900
+      },
+      {
+       "type": "boneArcher",
+       "x": 8150,
+       "y": 880
+      },
+      {
+       "type": "boneArcher",
+       "x": 8250,
+       "y": 1040
+      },
+      {
+       "type": "brute",
+       "x": 8300,
+       "y": 1040,
+       "elite": true,
+       "delayMs": 1500
+      }
+     ]
+    },
+    {
+     "id": "4x",
+     "trigger": {
+      "x": 8230
+     },
+     "requiredToClear": false,
+     "spawns": [
+      {
+       "type": "raider",
+       "x": 8450,
+       "y": 1040
+      },
+      {
+       "type": "imp",
+       "x": 8400,
+       "y": 980
+      },
+      {
+       "type": "imp",
+       "x": 8500,
+       "y": 980
+      }
+     ]
+    }
+   ],
+   "ambient": [
+    {
+     "type": "torch",
+     "x": 7260,
+     "y": 1040
+    },
+    {
+     "type": "ruinTower",
+     "x": 7500,
+     "y": 1040
+    },
+    {
+     "type": "house",
+     "x": 7650,
+     "y": 1040
+    },
+    {
+     "type": "safehouse",
+     "x": 7720,
+     "y": 1040
+    },
+    {
+     "type": "torch",
+     "x": 8040,
+     "y": 1040
+    },
+    {
+     "type": "ruinTower",
+     "x": 8300,
+     "y": 1040
+    },
+    {
+     "type": "torch",
+     "x": 8560,
+     "y": 1040
+    }
+   ],
+   "weather": "none",
+   "cameraVertical": false
+  }
+ ],
+ "bossArena": {
+  "x0": 8800,
+  "x1": 10400,
+  "trigger": {
+   "x": 8900,
+   "y": 0,
+   "w": 40,
+   "h": 1200
+  },
+  "entryGate": {
+   "x": 8800,
+   "y": 1040,
+   "h": 300
+  },
+  "bossSpawn": {
+   "x": 9900,
+   "y": 1040
+  },
+  "shrine": {
+   "x": 8700,
+   "y": 1040
+  }
+ },
+ "parallax": [
+  {
+   "key": "bg_sky",
+   "scrollFactor": 0.05,
+   "y": 0
+  },
+  {
+   "key": "bg_far",
+   "scrollFactor": 0.15,
+   "y": 250
+  },
+  {
+   "key": "bg_mid",
+   "scrollFactor": 0.4,
+   "y": 330
+  },
+  {
+   "key": "bg_near",
+   "scrollFactor": 1.15,
+   "y": 0
+  }
+ ],
+ "lighting": {
+  "occupied": {
+   "tint": "#5a2a78",
+   "alpha": 0.28
+  },
+  "liberated": {
+   "tint": "#ffcc66",
+   "alpha": 0.06
+  },
+  "bossP3": {
+   "tint": "#a0101a",
+   "alpha": 0.3
+  }
+ }
+}
