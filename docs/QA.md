@@ -6,7 +6,8 @@
 npm run lint      # ESLint
 npm run test      # Vitest: damage/armor, statuses, cooldowns, rally/summon, targeting, tokens,
                   # district FSM, economy/loot, boss phases & attack choice, RNG, TimeController, SaveManager, level
-npm run test:e2e  # Playwright: boot → menu → new game → move → attack → pause, zero console errors
+npm run test:e2e  # Playwright: smoke (boot → menu → new game → move → attack → pause, zero console errors)
+                  # + full flow (4 districts liberated → Kaalasura → Victory) + death → game over → retry
 npm run build     # tsc --noEmit + vite build
 ```
 

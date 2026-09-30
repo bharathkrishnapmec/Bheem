@@ -9,4 +9,4 @@
 7. Kaalasura (3 phases + desperation), DeathFX, boss cinematic, player death — done
 8. HUD, menus, settings/rebinding, pause, game-over, victory, shrine shop — done
 9. Audio, camera director, debug overlay (F3), save/settings — done
-10. Unit tests, Playwright smoke, lint, build, docs, full-flow playtest — in progress
+10. Unit tests, Playwright smoke, lint, build, docs, full-flow playtest — done (automated via `tests/e2e/flow.spec.ts`)

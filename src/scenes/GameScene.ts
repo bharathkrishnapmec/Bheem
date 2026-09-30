@@ -218,7 +218,7 @@ export class GameScene extends Phaser.Scene {
 
     this.light = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0).setOrigin(0).setScrollFactor(0).setDepth(700);
     this.weatherG = this.add.graphics().setScrollFactor(0).setDepth(690);
-    this.fog = this.add.tileSprite(0, 0, GAME_W, GAME_H, 'noise').setOrigin(0).setScrollFactor(0).setDepth(689).setAlpha(0).setTint(0xb8a8d8).setTileScale(6);
+    this.fog = this.add.tileSprite(0, 0, GAME_W, GAME_H, 'noise').setOrigin(0).setScrollFactor(0).setDepth(689).setAlpha(0).setTint(0xb8a8d8).setTileScale(24);
     this.updateLighting(true);
 
     w.cam.follow(w.player);
@@ -607,8 +607,8 @@ export class GameScene extends Phaser.Scene {
   private updateWeather(dt: number): void {
     const wx = this.w.districts.weather();
     const reduced = this.reducedFx();
-    this.fog.setAlpha(this.fog.alpha + ((wx === 'fog' ? 0.22 : 0) - this.fog.alpha) * Math.min(1, dt / 800));
-    if (this.fog.alpha > 0.01) this.fog.tilePositionX += dt * 0.004 + (this.cameras.main.scrollX - this.fog.tilePositionX * 0) * 0;
+    this.fog.setAlpha(this.fog.alpha + ((wx === 'fog' ? 0.12 : 0) - this.fog.alpha) * Math.min(1, dt / 800));
+    if (this.fog.alpha > 0.01) this.fog.tilePositionX += dt * 0.004;
     const g = this.weatherG;
     g.clear();
     const target = wx === 'rain' ? (reduced ? 40 : 120) : 0;
@@ -667,6 +667,24 @@ export class GameScene extends Phaser.Scene {
       warp: (x: number) => {
         w.player.setPosition(x, w.player.y - 300);
         w.player.body.reset(x, w.player.y - 300);
+      },
+      states: () => ({ ...w.districts.states }),
+      god: () => {
+        w.player.invulnMs = 1e9;
+      },
+      killAll: () => {
+        for (const e of w.enemies) if (e.isAlive()) w.combat.hit(e, { amount: 9999, kind: 'melee', faction: 'hero', dirX: 1, knockback: 0, poise: 0, ignoreIFrames: true });
+      },
+      breakBanner: () => {
+        const b = w.districts.current() && w.districts.banners.get(w.districts.current()!.id);
+        return b ? b.damage(9999, b.x, b.y) : false;
+      },
+      killPlayer: () => {
+        w.player.invulnMs = 0;
+        w.combat.hit(w.player, { amount: 9999, kind: 'melee', faction: 'enemy', dirX: 1, knockback: 0, poise: 0, ignoreIFrames: true });
+      },
+      hitBoss: (n: number) => {
+        if (w.boss?.isAlive()) w.combat.hit(w.boss, { amount: n, kind: 'melee', faction: 'hero', dirX: 1, knockback: 0, poise: 0, ignoreIFrames: true });
       },
     };
   }
