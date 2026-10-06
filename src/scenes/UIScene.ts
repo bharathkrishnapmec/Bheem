@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { GameContext } from '@/modes/creative/GameContext';
 import type { DistrictId } from '@/core/types';
 import { TouchControls } from '@/ui/touch/TouchControls';
 import { GAME_H, GAME_W } from '@/config/gameConfig';
@@ -24,6 +25,10 @@ export class UIScene extends Phaser.Scene {
   private touchLayout = false;
   private scoreText!: Phaser.GameObjects.BitmapText;
   private scoreShown = 0;
+  private creativeHud: Phaser.GameObjects.Container | null = null;
+  private styleText: Phaser.GameObjects.BitmapText | null = null;
+  private styleN = 0;
+  private styleT = 0;
   private healthLine!: Phaser.GameObjects.BitmapText;
   private hpText!: Phaser.GameObjects.BitmapText;
   private statusText!: Phaser.GameObjects.BitmapText;
@@ -108,6 +113,9 @@ export class UIScene extends Phaser.Scene {
     // top
     this.districtText = pxText(this, 16, 12, '', 1, PAL.cleanseGold);
     this.scoreText = pxText(this, GAME_W / 2, 20, '0', 2, PAL.cleanseGold).setOrigin(0.5, 0);
+    this.creativeHud = null;
+    this.styleText = null;
+    if (GameContext.creative) this.buildCreativeHud();
     this.objective = pxText(this, 16, 26, '', 2, 0xf0e8ff);
     this.bossName = pxText(this, GAME_W / 2, 58, '', 2, PAL.danger).setOrigin(0.5, 0).setVisible(false);
     this.prompt = pxText(this, GAME_W / 2, GAME_H - 150, '', 2, 0xffffff).setOrigin(0.5).setVisible(false);
@@ -138,7 +146,7 @@ export class UIScene extends Phaser.Scene {
     });
     on('boss:spawned', (p) => {
       this.bossOn = true;
-      this.bossName.setText(`${p.name} - ${STR.boss.title}`).setVisible(true);
+      this.bossName.setText(`${p.name} - ${p.title ?? STR.boss.title}`).setVisible(true);
       this.districtText.setText(`${p.name.toUpperCase()}'S ARENA`);
     });
     on('boss:died', () => {
@@ -275,6 +283,8 @@ export class UIScene extends Phaser.Scene {
     this.weaponName.setText(STR.weapons[s.weapon].toUpperCase());
 
     // --- score + district progress strip (Story)
+    if (this.creativeHud) this.updateCreativeHud(dt);
+    else {
     this.scoreShown += (s.score - this.scoreShown) * Math.min(1, dt / 120);
     if (Math.abs(s.score - this.scoreShown) < 1) this.scoreShown = s.score;
     this.scoreText.setText(String(Math.round(this.scoreShown))).setVisible(!this.bossOn);
@@ -289,6 +299,7 @@ export class UIScene extends Phaser.Scene {
         g.fillStyle(lib ? PAL.cleanseGold : PAL.ruinViolet, 1).fillRect(x, 8, sw, 6);
         if (id === s.districtId) g.lineStyle(1, 0xffffff, 1).strokeRect(x - 2, 6, sw + 4, 10);
       });
+    }
     }
 
     // --- prompt progress
@@ -322,6 +333,47 @@ export class UIScene extends Phaser.Scene {
       g.fillStyle(PAL.ruinViolet, 1).fillRect(x, 56, (w * this.bannerInfo.hp) / this.bannerInfo.max, 6);
       if (this.bannerInfo.t <= 0 || this.bannerInfo.hp <= 0) this.bannerInfo = null;
     }
+  }
+
+  /** Creative HUD: badge, style counter and Tools/Reset/Bosses buttons; no Story score, coins or districts. */
+  private buildCreativeHud(): void {
+    this.scoreText.setVisible(false);
+    const game = () => this.scene.get('Game') as Phaser.Scene & { openToolbox(): boolean; creativeReset(): void; openBossSelect(): void };
+    const btn = (x: number, label: string, fn: () => void) => {
+      const t = pxText(this, x, 14, label, 1, 0xffffff).setOrigin(0.5, 0);
+      const bg = this.add.rectangle(x, 10, t.width + 16, 18, PAL.outline, 0.75).setOrigin(0.5, 0).setStrokeStyle(1, PAL.statusCyan);
+      bg.setInteractive({ useHandCursor: true }).on('pointerdown', fn);
+      return [bg, t];
+    };
+    const badge = pxText(this, GAME_W / 2 + 240, 12, STR.creative.badge, 2, PAL.statusCyan).setOrigin(0, 0);
+    this.styleText = pxText(this, GAME_W / 2, 58, '', 2, PAL.ember).setOrigin(0.5, 0).setAlpha(0);
+    this.creativeHud = this.add.container(0, 0, [
+      badge,
+      this.styleText,
+      ...btn(GAME_W / 2 - 150, STR.creative.toolsHint, () => game().openToolbox()),
+      ...btn(GAME_W / 2, STR.creative.resetHint, () => game().creativeReset()),
+      ...btn(GAME_W / 2 + 150, STR.creative.bossesHint, () => game().openBossSelect()),
+    ]);
+    for (const o of this.brC.list) if (o !== this.gr && o !== this.ammoText && o !== this.rallyText) (o as unknown as Phaser.GameObjects.Components.Visible).setVisible(false);
+    this.ammoText.setVisible(true);
+    const off = GameEvents.on('hit:landed', () => {
+      this.styleN = this.styleT > 0 ? this.styleN + 1 : 1;
+      this.styleT = 2000;
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, off);
+  }
+
+  private updateCreativeHud(dt: number): void {
+    const hud = this.creativeHud!;
+    hud.setVisible(!TouchControls.visible);
+    const boss = GameContext.start?.kind === 'boss';
+    this.districtText.setText(boss ? STR.creative.bossSelect.toUpperCase() : STR.creative.sandbox.toUpperCase());
+    this.objective.setText(boss ? STR.creative.objectiveBoss : STR.creative.objectiveSandbox);
+    this.styleT -= dt;
+    if (this.styleT <= 0) this.styleN = 0;
+    const st = this.styleText!;
+    if (this.styleN >= 3) st.setText(STR.creative.style(this.styleN)).setAlpha(Math.min(1, this.styleT / 400));
+    else st.setAlpha(0);
   }
 
   /** Touch layout moves the primary HUD to the top so thumbs never cover HP, Prana or Rally. */

@@ -38,6 +38,7 @@ export interface InputState {
   device: 'kb' | 'pad' | 'touch';
   toolboxPressed: boolean;
   resetPressed: boolean;
+  bossSelectPressed: boolean;
 }
 
 export function emptyInput(): InputState {
@@ -75,5 +76,6 @@ export function emptyInput(): InputState {
     device: 'kb',
     toolboxPressed: false,
     resetPressed: false,
+    bossSelectPressed: false,
   };
 }

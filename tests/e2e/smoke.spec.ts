@@ -14,10 +14,10 @@ test('boot → menu → start → move → attack with no console errors', async
   await page.waitForTimeout(800);
   const x0 = await page.evaluate(() => (window as unknown as { __BHEEM__: Hooks }).__BHEEM__.player!().x);
   await page.keyboard.down('D');
-  await page.waitForTimeout(900);
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __BHEEM__: Hooks }).__BHEEM__.player!().x), { timeout: 5_000 })
+    .toBeGreaterThan(x0 + 50);
   await page.keyboard.up('D');
-  const x1 = await page.evaluate(() => (window as unknown as { __BHEEM__: Hooks }).__BHEEM__.player!().x);
-  expect(x1).toBeGreaterThan(x0 + 50);
   await page.keyboard.press('Space');
   await page.keyboard.press('J');
   await page.waitForTimeout(150);

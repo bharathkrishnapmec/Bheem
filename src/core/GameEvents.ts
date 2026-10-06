@@ -27,7 +27,7 @@ export interface GameEventMap {
   'enemy:killed': { type: EnemyType; killType: KillType; elite: boolean; x: number; y: number };
   'encounter:cleared': Record<string, never>;
   'combo:multi': { count: number };
-  'boss:spawned': { name: string; max: number };
+  'boss:spawned': { name: string; title?: string; max: number };
   'boss:hp': { hp: number; max: number; phase: 1 | 2 | 3 };
   'boss:phase': { phase: 1 | 2 | 3 };
   'boss:died': Record<string, never>;
@@ -49,6 +49,7 @@ export interface GameEventMap {
   'settings:changed': Record<string, never>;
   'ui:intent': UIIntent;
   'score:changed': { score: number; delta: number; x?: number; y?: number; label?: string };
+  'hit:landed': { x: number; y: number; dmg: number };
   'chest:opened': { x: number; y: number };
   'app:background': { reason: 'hidden' | 'blur' | 'portrait' };
 }

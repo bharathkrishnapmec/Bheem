@@ -25,6 +25,8 @@ export class InputManager {
   private anyKeyDown = false;
   /** Keys pressed since the last poll, so taps shorter than a frame still register. */
   private latched = new Set<string>();
+  /** Non-repeat keydowns this frame; Phaser clears _justDown on keyup, so fast taps would otherwise be lost. */
+  private edges = new Set<string>();
   private disposed = false;
   enabled = true;
   /** Optional world-space origin used to compute mouse aim angle (the hero). */
@@ -64,7 +66,12 @@ export class InputManager {
   private onAnyKey(ev?: KeyboardEvent): void {
     this.anyKeyDown = true;
     touchInput.active = false;
-    if (ev) for (const [n, k] of this.keys) if (k.keyCode === ev.keyCode) this.latched.add(n);
+    if (ev)
+      for (const [n, k] of this.keys)
+        if (k.keyCode === ev.keyCode) {
+          this.latched.add(n);
+          if (!ev.repeat) this.edges.add(n);
+        }
     this.state.device = 'kb';
   }
 
@@ -72,7 +79,7 @@ export class InputManager {
     const kb = this.scene.input.keyboard;
     if (!kb) return;
     const b = SaveManager.settings.bindings;
-    const names = new Set<string>(['ENTER', 'ESC', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'W', 'A', 'S', 'D', 'SPACE', 'BACKSPACE', 'F3']);
+    const names = new Set<string>(['ENTER', 'ESC', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'W', 'A', 'S', 'D', 'SPACE', 'BACKSPACE', 'F3', 'TAB', 'B']);
     for (const a of ACTIONS) for (const n of b[a] ?? []) if (!n.startsWith('MOUSE') && !n.startsWith('WHEEL')) names.add(n);
     for (const n of names) {
       if (this.keys.has(n)) continue;
@@ -88,7 +95,8 @@ export class InputManager {
 
   keyJustDown(name: string): boolean {
     const k = this.keys.get(name);
-    return k ? Phaser.Input.Keyboard.JustDown(k) : false;
+    const jd = k ? Phaser.Input.Keyboard.JustDown(k) : false;
+    return this.edges.delete(name) || jd;
   }
 
   private pad(): Phaser.Input.Gamepad.Gamepad | null {
@@ -150,6 +158,7 @@ export class InputManager {
     }
     s.toolboxPressed = (this.enabled && t.takePressed('toolbox')) || this.keyJustDown('TAB') || this.padSelectEdge(pad);
     s.resetPressed = (this.enabled && t.takePressed('reset')) || this.keyJustDown('BACKSPACE');
+    s.bossSelectPressed = (this.enabled && t.takePressed('bossSelect')) || this.keyJustDown('B');
     const pressed = (a: ActionId) => held[a] && !this.prev[a];
     const released = (a: ActionId) => !held[a] && this.prev[a];
 
@@ -242,6 +251,7 @@ export class InputManager {
     this.prevMenu = m;
     this.anyKeyDown = false;
     this.latched.clear();
+    this.edges.clear();
     this.mouseMoved = false;
     this.prev = held;
     return s;
@@ -250,6 +260,7 @@ export class InputManager {
   /** Clear edge state (e.g. after unpausing) so held buttons don't retrigger. */
   flush(): void {
     this.latched.clear();
+    this.edges.clear();
     const pad = this.pad();
     for (const a of ACTIONS) this.prev[a] = this.actionHeld(a, pad, 0);
   }

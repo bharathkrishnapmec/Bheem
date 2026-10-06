@@ -10,7 +10,8 @@ import { canPurchase, upgradeCost } from '@/logic/economy';
 import { AudioManager } from '@/audio/AudioManager';
 import { InputManager } from '@/input/InputManager';
 import { pxText } from '@/ui/text';
-import { MenuList, drawPanel } from '@/ui/widgets';
+import { MenuList, drawPanel, type MenuItem } from '@/ui/widgets';
+import { GameContext } from '@/modes/creative/GameContext';
 
 abstract class Overlay extends Phaser.Scene {
   protected inp!: InputManager;
@@ -43,14 +44,44 @@ export class PauseScene extends Overlay {
   }
   create(): void {
     this.dim();
-    this.panel(360, 300);
-    pxText(this, GAME_W / 2, GAME_H / 2 - 120, STR.pause.title, 4, PAL.cleanseGold).setOrigin(0.5, 0);
+    const cr = GameContext.creative;
+    this.panel(360, cr ? 440 : 300);
+    pxText(this, GAME_W / 2, cr ? 64 : GAME_H / 2 - 120, STR.pause.title, 4, PAL.cleanseGold).setOrigin(0.5, 0);
+    const game = () => this.scene.get('Game') as Phaser.Scene & { creativeReset(): void; openBossSelect(): void };
+    const creativeItems: MenuItem[] = cr
+      ? [
+          {
+            label: () => STR.creative.reset,
+            onConfirm: () => {
+              this.resume();
+              game().creativeReset();
+            },
+          },
+          {
+            label: () => STR.creative.toolbox,
+            onConfirm: () => {
+              AudioManager.duck(0);
+              this.scene.stop();
+              this.scene.launch('Toolbox');
+            },
+          },
+          {
+            label: () => STR.creative.bossSelect,
+            onConfirm: () => {
+              AudioManager.duck(0);
+              this.scene.stop();
+              game().openBossSelect();
+            },
+          },
+        ]
+      : [];
     this.menu = new MenuList(
       this,
       GAME_W / 2,
-      GAME_H / 2 - 20,
+      cr ? 130 : GAME_H / 2 - 20,
       [
         { label: () => STR.pause.resume, onConfirm: () => this.resume() },
+        ...creativeItems,
         { label: () => STR.pause.restart, onConfirm: () => this.restart() },
         {
           label: () => STR.pause.settings,
@@ -62,7 +93,7 @@ export class PauseScene extends Overlay {
         },
         { label: () => STR.pause.quit, onConfirm: () => this.toMenu() },
       ],
-      { width: 280, spacing: 40, scale: 2 },
+      { width: 280, spacing: cr ? 40 : 40, scale: 2 },
     );
     this.setupInput();
     AudioManager.duck(99999);

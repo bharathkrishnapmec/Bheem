@@ -9,6 +9,7 @@ import { SettingsScene } from '@/scenes/SettingsScene';
 import { GameScene } from '@/scenes/GameScene';
 import { UIScene } from '@/scenes/UIScene';
 import { PauseScene, GameOverScene, VictoryScene, ShrineScene } from '@/scenes/OverlayScenes';
+import { BossSelectScene, CreativeMenuScene, CreativeResultScene, ToolboxScene } from '@/modes/creative/scenes';
 import { installLifecycle } from '@/platform/lifecycle';
 import { TouchControls } from '@/ui/touch/TouchControls';
 
@@ -48,7 +49,7 @@ else {
       default: 'arcade',
       arcade: { gravity: { x: 0, y: balance.player.gravity }, fps: 60, tileBias: 24, debug: false },
     },
-    scene: [BootScene, PreloadScene, MainMenuScene, SettingsScene, GameScene, UIScene, PauseScene, GameOverScene, VictoryScene, ShrineScene],
+    scene: [BootScene, PreloadScene, MainMenuScene, SettingsScene, GameScene, UIScene, PauseScene, GameOverScene, VictoryScene, ShrineScene, CreativeMenuScene, BossSelectScene, ToolboxScene, CreativeResultScene],
   });
   (window as unknown as { __GAME__: Phaser.Game }).__GAME__ = game;
   installLifecycle();

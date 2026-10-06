@@ -142,8 +142,8 @@ export function validateLevel(raw: unknown): LevelData {
   rects(raw.oneWays, 'level.oneWays');
   rects(raw.hazards, 'level.hazards', true);
 
-  if (!Array.isArray(raw.districts) || raw.districts.length === 0) {
-    issues.push('level.districts must be a non-empty array');
+  if (!Array.isArray(raw.districts)) {
+    issues.push('level.districts must be an array (empty for arena maps)');
   } else {
     const waveIds = new Set<string>();
     raw.districts.forEach((d: unknown, i: number) => {

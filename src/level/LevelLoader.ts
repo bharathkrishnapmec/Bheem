@@ -1,4 +1,5 @@
 import raw from './village.level.json';
+import arenaRaw from '@/modes/creative/creative_arena.level.json';
 import { validateLevel, type LevelData, LevelValidationError } from './levelSchema';
 import { checkReachability } from './reachability';
 
@@ -8,8 +9,16 @@ export interface LoadResult {
 }
 
 export function loadVillage(): LoadResult {
+  return loadLevel(raw);
+}
+
+export function loadCreativeArena(): LoadResult {
+  return loadLevel(arenaRaw);
+}
+
+function loadLevel(src: unknown): LoadResult {
   try {
-    const level = validateLevel(raw);
+    const level = validateLevel(src);
     if (import.meta.env.DEV) {
       const r = checkReachability(level);
       if (r.unreachable.length) {
