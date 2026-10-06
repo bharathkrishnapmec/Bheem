@@ -2,17 +2,40 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0a12" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="BHEEM" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="./icons/icon-180.png" />
     <title>BHEEM</title>
     <style>
-      html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0b0a12; overflow: hidden; }
-      #game-root { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
-      canvas { image-rendering: pixelated; image-rendering: crisp-edges; outline: none; }
+      html, body {
+        margin: 0; padding: 0; width: 100%; height: 100%;
+        height: 100dvh; background: #0b0a12; overflow: hidden;
+        touch-action: none; overscroll-behavior: none;
+        user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #game-root { position: fixed; inset: 0; width: 100vw; height: 100svh; height: 100dvh; display: flex; align-items: center; justify-content: center; }
+      canvas { image-rendering: pixelated; image-rendering: crisp-edges; outline: none; touch-action: none; }
       #fatal { display: none; color: #ffd25a; font: 16px monospace; text-align: center; padding: 40px; }
+      #rotate {
+        display: none; position: fixed; inset: 0; z-index: 1000; background: #0b0a12;
+        color: #5ee6f2; font: bold 20px monospace; text-align: center;
+        align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+      }
+      #rotate .phone { width: 48px; height: 80px; border: 4px solid #ffd25a; border-radius: 8px; animation: rot 1.6s ease-in-out infinite; }
+      @keyframes rot { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(90deg); } }
+      body.needs-rotate #rotate { display: flex; }
     </style>
   </head>
   <body>
     <div id="game-root"></div>
+    <div id="rotate"><div class="phone"></div><div id="rotate-text">Rotate your phone</div></div>
     <div id="fatal"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

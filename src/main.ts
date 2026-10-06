@@ -9,6 +9,7 @@ import { SettingsScene } from '@/scenes/SettingsScene';
 import { GameScene } from '@/scenes/GameScene';
 import { UIScene } from '@/scenes/UIScene';
 import { PauseScene, GameOverScene, VictoryScene, ShrineScene } from '@/scenes/OverlayScenes';
+import { installLifecycle } from '@/platform/lifecycle';
 
 function hasWebGL(): boolean {
   try {
@@ -49,4 +50,5 @@ else {
     scene: [BootScene, PreloadScene, MainMenuScene, SettingsScene, GameScene, UIScene, PauseScene, GameOverScene, VictoryScene, ShrineScene],
   });
   (window as unknown as { __GAME__: Phaser.Game }).__GAME__ = game;
+  installLifecycle();
 }

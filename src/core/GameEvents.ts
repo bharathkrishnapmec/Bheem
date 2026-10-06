@@ -48,12 +48,14 @@ export interface GameEventMap {
   'shrine:close': Record<string, never>;
   'settings:changed': Record<string, never>;
   'ui:intent': UIIntent;
+  'app:background': { reason: 'hidden' | 'blur' | 'portrait' };
 }
 
 export type UIIntent =
   | { type: 'pause' }
   | { type: 'resume' }
   | { type: 'retry' }
+  | { type: 'restart' }
   | { type: 'mainMenu' }
   | { type: 'purchase'; upgrade: string }
   | { type: 'closeShrine' }

@@ -7,11 +7,13 @@ import { AudioManager } from '@/audio/AudioManager';
 import { InputManager } from '@/input/InputManager';
 import { Parallax } from '@/fx/Parallax';
 import { pxText } from '@/ui/text';
-import { MenuList } from '@/ui/widgets';
+import { ButtonNav, PixelButton } from '@/ui/widgets';
+import { Device } from '@/platform/Device';
 
 export class MainMenuScene extends Phaser.Scene {
   private input2!: InputManager;
-  private menu!: MenuList;
+  private buttons: PixelButton[] = [];
+  private nav!: ButtonNav;
   private bg!: Parallax;
   private t = 0;
   private embers: { x: number; y: number; vy: number; vx: number; a: number }[] = [];
@@ -46,33 +48,28 @@ export class MainMenuScene extends Phaser.Scene {
     pxText(this, GAME_W / 2, 190, STR.tagline, 1, 0xd8d0e8).setOrigin(0.5, 0);
 
     const hasSave = SaveManager.hasProgress();
-    this.menu = new MenuList(
-      this,
-      GAME_W / 2,
-      250,
-      [
-        { label: () => STR.menu.continue, enabled: () => hasSave, onConfirm: () => this.start(true) },
-        { label: () => STR.menu.newGame, onConfirm: () => this.start(false) },
-        { label: () => STR.menu.settings, onConfirm: () => this.openSettings() },
-      ],
-      { width: 260, spacing: 36, scale: 2 },
-    );
-    if (!hasSave) this.menu.index = 1;
-    this.menu.refresh();
+    this.buttons = [];
+    const play = new PixelButton(this, GAME_W / 2, 262, 320, 76, STR.menu.play, () => this.start(false), { scale: 5, color: PAL.cleanseGold });
+    this.buttons.push(play);
+    let y = 330;
+    if (hasSave) {
+      this.buttons.push(new PixelButton(this, GAME_W / 2, y, 260, 44, STR.menu.continue, () => this.start(true)));
+      y += 52;
+    }
+    this.buttons.push(new PixelButton(this, GAME_W / 2, y, 260, 44, STR.menu.settings, () => this.openSettings()));
+    this.nav = new ButtonNav(this.buttons);
     const best = SaveManager.get().bestClear;
     if (best) {
       const s = Math.floor(best.timeMs / 1000);
-      pxText(this, GAME_W / 2, 372, `${STR.victory.best}: ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}  ${best.deaths} deaths`, 1, PAL.cleanseGold).setOrigin(0.5, 0);
+      pxText(this, GAME_W - 12, 12, `${STR.victory.best}: ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}  ${best.deaths} deaths`, 1, PAL.cleanseGold).setOrigin(1, 0);
     }
-    pxText(this, GAME_W / 2, GAME_H - 26, 'Move A/D  Jump Space  Attack Click/J  Dash Shift  Weapons 1-3/Q  Summon R  Interact E', 1, 0xb8b0c8).setOrigin(0.5, 0).setDepth(1000);
-    pxText(this, 8, GAME_H - 14, 'v1.0', 1, 0x6a6480).setDepth(1000);
+    if (!Device.isTouch())
+      pxText(this, GAME_W / 2, GAME_H - 26, 'Move A/D  Jump Space  Attack Click/J  Dash Shift  Weapons 1-3/Q  Summon R  Interact E', 1, 0xb8b0c8).setOrigin(0.5, 0).setDepth(1000);
+    pxText(this, 8, GAME_H - 14, 'v1.1', 1, 0x6a6480).setDepth(1000);
 
     this.input2 = new InputManager(this);
     AudioManager.setMusic('menu');
-    this.events.on(Phaser.Scenes.Events.RESUME, () => {
-      this.input2.flush();
-      this.menu.refresh();
-    });
+    this.events.on(Phaser.Scenes.Events.RESUME, () => this.input2.flush());
     (window as unknown as { __BHEEM__?: unknown }).__BHEEM__ = { scene: 'MainMenu' };
   }
 
@@ -80,8 +77,9 @@ export class MainMenuScene extends Phaser.Scene {
     if (this.locked) return;
     this.locked = true;
     AudioManager.unlock();
+    if (Device.isTouch()) void Device.enterFullscreenLandscape();
     if (!cont) SaveManager.clearProgress();
-    this.cameras.main.fadeOut(350, 0, 0, 0);
+    this.cameras.main.fadeOut(150, 0, 0, 0);
     this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.scene.start('Game', { continue: cont });
     });
@@ -96,7 +94,7 @@ export class MainMenuScene extends Phaser.Scene {
     this.t += dt;
     this.bg.update(this.t * 0.03, 0);
     this.input2.update();
-    if (!this.locked) this.menu.update(this.input2.state);
+    if (!this.locked) this.nav.update(this.input2.state);
     if (this.embers.length < 40 && Math.random() < 0.3)
       this.embers.push({ x: Math.random() * GAME_W, y: GAME_H + 4, vy: -20 - Math.random() * 40, vx: (Math.random() - 0.5) * 20, a: 1 });
     this.emberG.clear();

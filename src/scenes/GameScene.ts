@@ -242,13 +242,16 @@ export class GameScene extends Phaser.Scene {
 
     const onDied = () => this.onPlayerDied();
     const onRetry = (i: { type: string }) => {
-      if (i.type === 'retry') this.retry();
+      if (i.type === 'retry' || i.type === 'restart') this.retry();
     };
+    const onBackground = () => this.openPause();
     GameEvents.on('player:died', onDied);
     GameEvents.on('ui:intent', onRetry);
+    GameEvents.on('app:background', onBackground);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       GameEvents.off('player:died', onDied);
       GameEvents.off('ui:intent', onRetry);
+      GameEvents.off('app:background', onBackground);
       TimeController.clear();
       TimeController.bind(null);
       this.scene.stop('UI');
@@ -401,7 +404,17 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  /** Opens the pause menu if the game is in a pausable state. */
+  openPause(): boolean {
+    if (this.dying || this.bossStage === 'dead' || !this.scene.isActive()) return false;
+    this.scene.pause();
+    this.scene.launch('Pause');
+    GameEvents.emit('game:paused', { paused: true });
+    return true;
+  }
+
   private retry(): void {
+    this.scene.stop('Pause');
     this.scene.stop('GameOver');
     this.scene.start('Game', { continue: true });
   }
@@ -499,12 +512,7 @@ export class GameScene extends Phaser.Scene {
     w.now += dt;
     this.inp.update();
     const st = this.inp.state;
-    if (st.pausePressed && !this.dying && this.bossStage !== 'dead') {
-      this.scene.pause();
-      this.scene.launch('Pause');
-      GameEvents.emit('game:paused', { paused: true });
-      return;
-    }
+    if (st.pausePressed && this.openPause()) return;
     const p = w.player;
     p.in = this.cinematic || this.dying ? emptyInput() : st;
     if (!this.cinematic && !this.dying && st.summonPressed) w.summon.tryStart();

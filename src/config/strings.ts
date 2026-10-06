@@ -5,8 +5,9 @@ export const STR = {
   title: 'BHEEM',
   subtitle: 'Liberate the Village',
   tagline: 'The Asura Horde has taken the hill village. Take it back.',
-  menu: { newGame: 'New Game', continue: 'Continue', settings: 'Settings', pressStart: 'Press any key' },
-  pause: { title: 'Paused', resume: 'Resume', settings: 'Settings', quit: 'Quit to Menu' },
+  menu: { play: 'PLAY', newGame: 'New Game', continue: 'CONTINUE', creative: 'CREATIVE MODE', settings: 'SETTINGS', pressStart: 'Press any key' },
+  pause: { title: 'Paused', resume: 'Resume', restart: 'Restart', settings: 'Settings', quit: 'Main Menu' },
+  rotate: 'Rotate your phone',
   settings: {
     title: 'Settings',
     master: 'Master Volume',

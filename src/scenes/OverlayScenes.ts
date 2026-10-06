@@ -43,14 +43,15 @@ export class PauseScene extends Overlay {
   }
   create(): void {
     this.dim();
-    this.panel(360, 260);
-    pxText(this, GAME_W / 2, GAME_H / 2 - 100, STR.pause.title, 4, PAL.cleanseGold).setOrigin(0.5, 0);
+    this.panel(360, 300);
+    pxText(this, GAME_W / 2, GAME_H / 2 - 120, STR.pause.title, 4, PAL.cleanseGold).setOrigin(0.5, 0);
     this.menu = new MenuList(
       this,
       GAME_W / 2,
       GAME_H / 2 - 20,
       [
         { label: () => STR.pause.resume, onConfirm: () => this.resume() },
+        { label: () => STR.pause.restart, onConfirm: () => this.restart() },
         {
           label: () => STR.pause.settings,
           onConfirm: () => {
@@ -66,6 +67,10 @@ export class PauseScene extends Overlay {
     this.setupInput();
     AudioManager.duck(99999);
     (window as unknown as { __BHEEM__?: { scene?: string } }).__BHEEM__!.scene = 'Pause';
+  }
+  private restart(): void {
+    AudioManager.duck(0);
+    GameEvents.emit('ui:intent', { type: 'restart' });
   }
   private resume(): void {
     AudioManager.duck(0);
