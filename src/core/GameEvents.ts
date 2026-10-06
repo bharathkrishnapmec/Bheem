@@ -48,6 +48,8 @@ export interface GameEventMap {
   'shrine:close': Record<string, never>;
   'settings:changed': Record<string, never>;
   'ui:intent': UIIntent;
+  'score:changed': { score: number; delta: number; x?: number; y?: number; label?: string };
+  'chest:opened': { x: number; y: number };
   'app:background': { reason: 'hidden' | 'blur' | 'portrait' };
 }
 

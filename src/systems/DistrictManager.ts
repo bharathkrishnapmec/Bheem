@@ -31,6 +31,7 @@ export class DistrictManager {
   ) {
     for (const d of world.level.districts) {
       this.states[d.id] = liberated.has(d.id) ? 'liberated' : 'occupied';
+    GameStore.state.districtsLiberated = [...liberated];
       const b = new Banner(world, d.id, d.banner.x, d.banner.y, d.banner.hp);
       b.onDestroyed = () => this.onBannerDestroyed(d);
       world.banners.push(b);
@@ -120,6 +121,7 @@ export class DistrictManager {
   private onBannerDestroyed(d: DistrictDef): void {
     const w = this.world;
     this.fire(d, 'bannerDestroyed');
+    if (!GameStore.state.districtsLiberated.includes(d.id)) GameStore.state.districtsLiberated.push(d.id);
     w.progress.banners.add(d.id);
     const idx = w.level.districts.indexOf(d);
     GameStore.setRally(addRally(GameStore.state.rally, 20));

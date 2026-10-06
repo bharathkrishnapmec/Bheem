@@ -120,7 +120,8 @@ export class VictoryScene extends Overlay {
   constructor() {
     super('Victory');
   }
-  create(d: { timeMs: number; deaths: number; rescued: number; total: number; coins: number; kills: number }): void {
+  create(d: { timeMs: number; deaths: number; rescued: number; total: number; coins: number; kills: number; score: number }): void {
+    const newBest = SaveManager.recordScore(d.score);
     this.cameras.main.fadeIn(800, 0, 0, 0);
     this.add.image(0, 0, 'bg_sky').setOrigin(0).setDisplaySize(GAME_W, GAME_H).setTint(0xffe0b0);
     this.add.image(GAME_W / 2, GAME_H, 'bg_mid').setOrigin(0.5, 1).setScale(2).setTint(0xffd890);
@@ -135,9 +136,10 @@ export class VictoryScene extends Overlay {
       [STR.victory.rescued, `${d.rescued}/${d.total}`],
       [STR.victory.kills, String(d.kills)],
       [STR.victory.coins, String(d.coins)],
+      [STR.victory.score, String(d.score)],
     ];
     rows.forEach(([k, v], i) => {
-      const y = 190 + i * 28;
+      const y = 184 + i * 26;
       const a = pxText(this, GAME_W / 2 - 200, y, k, 2, 0xe8e0f0).setAlpha(0);
       const b = pxText(this, GAME_W / 2 + 200, y, v, 2, PAL.cleanseGold).setOrigin(1, 0).setAlpha(0);
       this.tweens.add({ targets: [a, b], alpha: 1, delay: 400 + i * 200, duration: 300 });
@@ -145,13 +147,18 @@ export class VictoryScene extends Overlay {
     const stars = 1 + (d.rescued >= d.total ? 1 : 0) + (d.deaths === 0 ? 1 : 0);
     for (let i = 0; i < 3; i++) {
       const st = this.add.image(GAME_W / 2 - 50 + i * 50, 350, i < stars ? 'icon_star' : 'icon_starEmpty').setScale(0);
+      st.y = 356;
       this.tweens.add({ targets: st, scale: 2, delay: 1500 + i * 250, duration: 300, ease: 'Back.out', onStart: () => i < stars && AudioManager.play('coin') });
     }
     const best = SaveManager.get().bestClear;
+    const bestScore = SaveManager.get().bestScore ?? d.score;
+    let line = `${STR.victory.bestScore}: ${bestScore}`;
     if (best) {
       const b = Math.floor(best.timeMs / 1000);
-      pxText(this, GAME_W / 2, 384, `${STR.victory.best}: ${Math.floor(b / 60)}:${String(b % 60).padStart(2, '0')}`, 1, PAL.statusCyan).setOrigin(0.5);
+      line = `${STR.victory.best}: ${Math.floor(b / 60)}:${String(b % 60).padStart(2, '0')}   ${line}`;
     }
+    pxText(this, GAME_W / 2, 386, line, 1, PAL.statusCyan).setOrigin(0.5);
+    if (newBest) pxText(this, GAME_W / 2 + 200, 330, STR.victory.newBest, 1, PAL.ember).setOrigin(1, 0.5);
     this.menu = new MenuList(this, GAME_W / 2, 420, [{ label: () => STR.victory.menu, onConfirm: () => this.toMenu() }], { width: 240, spacing: 36, scale: 2 });
     this.setupInput();
     AudioManager.setMusic('victory');

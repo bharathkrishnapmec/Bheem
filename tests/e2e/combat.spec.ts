@@ -10,6 +10,7 @@ type Hooks = {
   spawn(type: string, dx: number): boolean;
   enemyHp(): number[];
   tokens(): { inUse: number; capacity: number };
+  score(): number;
   warp(x: number): void;
   hitBoss(n: number): void;
   boss(): { hp: number; phase: number } | null;
@@ -100,5 +101,18 @@ test('Kaalasura walks through phases 1 → 2 → 3 at the balance thresholds', a
   expect(seen[2]).toBeLessThanOrEqual(0.66);
   expect(seen[2]).toBeGreaterThan(0.33);
   expect(seen[3]).toBeLessThanOrEqual(0.33);
+  expect(errors).toEqual([]);
+});
+
+test('score: kills award the brief point values and show on the HUD', async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  await start(page, errors);
+  expect(await H<number>(page, 'h.score()')).toBe(0);
+  await H(page, "h.spawn('raider', 80)");
+  await H(page, "h.spawn('imp', 120)");
+  await page.waitForTimeout(300);
+  await H(page, 'h.killAll()');
+  await expect.poll(() => H<number>(page, 'h.score()'), { timeout: 3_000 }).toBe(40);
   expect(errors).toEqual([]);
 });

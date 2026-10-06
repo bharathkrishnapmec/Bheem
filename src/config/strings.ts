@@ -67,6 +67,9 @@ export const STR = {
     kills: 'Asura slain',
     menu: 'Main menu',
     best: 'Best clear',
+    score: 'Score',
+    bestScore: 'Best score',
+    newBest: 'NEW BEST!',
   },
   shrine: {
     title: 'Shrine of Light',
@@ -130,6 +133,11 @@ export const STR = {
     banner: 'BANNER',
     critical: 'CRITICAL HIT',
     pranaDry: 'No Prana',
+    score: 'SCORE',
+    garrisonCleared: 'GARRISON CLEARED',
+    bannerFallen: 'BANNER FALLEN',
+    districtLiberated: (name: string) => `DISTRICT LIBERATED - ${name.toUpperCase()}`,
+    flawless: 'FLAWLESS',
   },
   toasts: {
     captiveFreed: 'Villager freed! +15 Rally',

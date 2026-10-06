@@ -7,7 +7,8 @@ import { BG_COLOR, GAME_H, GAME_W } from '@/config/gameConfig';
 import { balance } from '@/config/balance';
 import { PAL } from '@/config/palette';
 import { STR } from '@/config/strings';
-import { GameEvents } from '@/core/GameEvents';
+import { GameEvents, type GameEventMap } from '@/core/GameEvents';
+import { ScoreSystem } from '@/systems/ScoreSystem';
 import { GameStore } from '@/core/GameStore';
 import { RNG } from '@/core/RNG';
 import { SaveManager } from '@/core/SaveManager';
@@ -155,6 +156,7 @@ export class GameScene extends Phaser.Scene {
       deaths: prog?.deaths ?? 0,
       playtimeMs: prog?.playtimeMs ?? 0,
       kills: prog?.kills ?? 0,
+      score: prog?.score ?? 0,
       checkpointId: prog?.checkpointId ?? '',
       summonCost: balance.rally.summonCost,
     });
@@ -253,10 +255,15 @@ export class GameScene extends Phaser.Scene {
     GameEvents.on('player:died', onDied);
     GameEvents.on('ui:intent', onRetry);
     GameEvents.on('app:background', onBackground);
+    const score = new ScoreSystem(() => ({ x: this.w.player.x, y: this.w.player.y - 70 }));
+    const onScore = (p: GameEventMap['score:changed']) => this.scorePopup(p);
+    GameEvents.on('score:changed', onScore);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       GameEvents.off('player:died', onDied);
       GameEvents.off('ui:intent', onRetry);
       GameEvents.off('app:background', onBackground);
+      score.destroy();
+      GameEvents.off('score:changed', onScore);
       TouchControls.setPlaying(false);
       TimeController.clear();
       TimeController.bind(null);
@@ -363,6 +370,7 @@ export class GameScene extends Phaser.Scene {
       deaths: s.deaths,
       playtimeMs: s.playtimeMs,
       kills: s.kills,
+      score: s.score,
     });
   }
 
@@ -500,7 +508,7 @@ export class GameScene extends Phaser.Scene {
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
         const s = GameStore.state;
         this.scene.stop('UI');
-        this.scene.start('Victory', { timeMs: s.playtimeMs, deaths: s.deaths, rescued: s.rescued, total: s.totalCaptives, coins: s.coins, kills: s.kills });
+        this.scene.start('Victory', { timeMs: s.playtimeMs, deaths: s.deaths, rescued: s.rescued, total: s.totalCaptives, coins: s.coins, kills: s.kills, score: s.score });
       });
     });
   }
@@ -676,6 +684,12 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  private scorePopup(p: GameEventMap['score:changed']): void {
+    if (p.x === undefined || p.y === undefined) return;
+    const t = pxText(this, p.x, p.y, p.label ? `${p.label} +${p.delta}` : `+${p.delta}`, 1, PAL.cleanseGold).setOrigin(0.5).setDepth(210);
+    this.tweens.add({ targets: t, y: p.y - 36, alpha: 0, delay: 250, duration: 650, onComplete: () => t.destroy() });
+  }
+
   private exposeTestHooks(): void {
     const w = this.w;
     (window as unknown as { __BHEEM__: unknown }).__BHEEM__ = {
@@ -684,6 +698,7 @@ export class GameScene extends Phaser.Scene {
       spawn: (type: EnemyType, dx: number) => (w.spawner.spawnEnemy(type, w.player.x + dx, w.player.y, { aggro: true, required: false }) ? true : false),
       enemyHp: () => [...w.enemies].filter((e) => e.isAlive()).map((e) => e.hp),
       enemyInfo: () => [...w.enemies].filter((e) => e.isAlive()).map((e) => ({ type: e.type, x: Math.round(e.x), y: Math.round(e.y), hp: e.hp, ai: e.ai, aggro: e.aggro, target: e.target === w.player })),
+      score: () => GameStore.state.score,
       tokens: () => ({ inUse: w.tokens.inUse, capacity: w.tokens.capacity }),
       enemies: () => [...w.enemies].filter((e) => e.isAlive()).length,
       district: () => w.districts.current()?.id ?? null,

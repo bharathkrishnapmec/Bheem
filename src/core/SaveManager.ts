@@ -38,6 +38,7 @@ export interface SaveProgress {
   deaths: number;
   playtimeMs: number;
   kills: number;
+  score?: number;
 }
 
 export interface SaveData {
@@ -45,6 +46,7 @@ export interface SaveData {
   settings: SaveSettings;
   progress?: SaveProgress;
   bestClear?: { timeMs: number; deaths: number; rescued: number };
+  bestScore?: number;
 }
 
 export interface StorageLike {
@@ -154,12 +156,14 @@ export function parseSave(raw: unknown): SaveData {
       deaths: isNum(p.deaths) ? p.deaths : 0,
       playtimeMs: isNum(p.playtimeMs) ? p.playtimeMs : 0,
       kills: isNum(p.kills) ? p.kills : 0,
+      score: isNum(p.score) ? p.score : 0,
     };
   }
   const b = migrated.bestClear as Record<string, unknown> | undefined;
   if (b && isNum(b.timeMs) && isNum(b.deaths) && isNum(b.rescued)) {
     out.bestClear = { timeMs: b.timeMs, deaths: b.deaths, rescued: b.rescued };
   }
+  if (isNum(migrated.bestScore)) out.bestScore = migrated.bestScore;
   return out;
 }
 
@@ -240,6 +244,16 @@ export class SaveManagerCore {
     const b = this.data.bestClear;
     if (!b || timeMs < b.timeMs) this.data.bestClear = { timeMs, deaths, rescued };
     this.write();
+  }
+
+  /** Records a Story score; returns true when it beats the stored personal best. */
+  recordScore(score: number): boolean {
+    const isBest = score > (this.data.bestScore ?? 0);
+    if (isBest) {
+      this.data.bestScore = score;
+      this.write();
+    }
+    return isBest;
   }
 
   hasProgress(): boolean {

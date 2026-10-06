@@ -28,6 +28,8 @@ export interface StoreState {
   playtimeMs: number;
   kills: number;
   squadActive: boolean;
+  score: number;
+  districtsLiberated: DistrictId[];
 }
 
 export function defaultStoreState(): StoreState {
@@ -57,6 +59,8 @@ export function defaultStoreState(): StoreState {
     playtimeMs: 0,
     kills: 0,
     squadActive: false,
+    score: 0,
+    districtsLiberated: [],
   };
 }
 

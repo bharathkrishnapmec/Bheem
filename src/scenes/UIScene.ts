@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { DistrictId } from '@/core/types';
 import { TouchControls } from '@/ui/touch/TouchControls';
 import { GAME_H, GAME_W } from '@/config/gameConfig';
 import { balance } from '@/config/balance';
@@ -21,6 +22,8 @@ export class UIScene extends Phaser.Scene {
   private blC!: Phaser.GameObjects.Container;
   private brC!: Phaser.GameObjects.Container;
   private touchLayout = false;
+  private scoreText!: Phaser.GameObjects.BitmapText;
+  private scoreShown = 0;
   private healthLine!: Phaser.GameObjects.BitmapText;
   private hpText!: Phaser.GameObjects.BitmapText;
   private statusText!: Phaser.GameObjects.BitmapText;
@@ -104,6 +107,7 @@ export class UIScene extends Phaser.Scene {
 
     // top
     this.districtText = pxText(this, 16, 12, '', 1, PAL.cleanseGold);
+    this.scoreText = pxText(this, GAME_W / 2, 20, '0', 2, PAL.cleanseGold).setOrigin(0.5, 0);
     this.objective = pxText(this, 16, 26, '', 2, 0xf0e8ff);
     this.bossName = pxText(this, GAME_W / 2, 58, '', 2, PAL.danger).setOrigin(0.5, 0).setVisible(false);
     this.prompt = pxText(this, GAME_W / 2, GAME_H - 150, '', 2, 0xffffff).setOrigin(0.5).setVisible(false);
@@ -155,7 +159,8 @@ export class UIScene extends Phaser.Scene {
       this.tweens.add({ targets: this.flash, fillAlpha: 0, duration: p.ms });
     });
     on('combo:multi', (p) => this.multi(p.count));
-    on('district:liberated', () => this.card(STR.victory.title.replace('VILLAGE', 'DISTRICT'), GameStore.state.districtId ? STR.districts[GameStore.state.districtId] : '', 2200));
+    on('district:liberated', (p) => this.card(STR.hud.bannerFallen, STR.hud.districtLiberated(STR.districts[p.id]), 2400));
+    on('encounter:cleared', () => this.card(STR.hud.garrisonCleared, '', 1600));
     on('victory:title', () => this.card(STR.victory.title, STR.victory.subtitle, 3200));
     on('checkpoint:reached', () => this.toast('Checkpoint', PAL.cleanseGold));
     on('fx:desaturate', () => {
@@ -268,6 +273,23 @@ export class UIScene extends Phaser.Scene {
       if (sel) gr.lineStyle(2, PAL.cleanseGold, 1).strokeRect(ic.x - 13, ic.y - 13, 26, 26);
     });
     this.weaponName.setText(STR.weapons[s.weapon].toUpperCase());
+
+    // --- score + district progress strip (Story)
+    this.scoreShown += (s.score - this.scoreShown) * Math.min(1, dt / 120);
+    if (Math.abs(s.score - this.scoreShown) < 1) this.scoreShown = s.score;
+    this.scoreText.setText(String(Math.round(this.scoreShown))).setVisible(!this.bossOn);
+    if (!this.bossOn) {
+      const ids: DistrictId[] = ['gate', 'market', 'temple', 'hall'];
+      const sw = 44;
+      const sx = GAME_W / 2 - (ids.length * (sw + 4)) / 2;
+      ids.forEach((id, i) => {
+        const x = sx + i * (sw + 4);
+        const lib = s.districtsLiberated.includes(id);
+        g.fillStyle(PAL.outline, 1).fillRect(x - 1, 7, sw + 2, 8);
+        g.fillStyle(lib ? PAL.cleanseGold : PAL.ruinViolet, 1).fillRect(x, 8, sw, 6);
+        if (id === s.districtId) g.lineStyle(1, 0xffffff, 1).strokeRect(x - 2, 6, sw + 4, 10);
+      });
+    }
 
     // --- prompt progress
     if (this.promptOn && this.promptProgress !== undefined) {

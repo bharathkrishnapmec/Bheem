@@ -4,6 +4,15 @@
  */
 
 export const balance = {
+  /** Cosmetic Story-mode score (never affects gameplay). */
+  score: {
+    kill: { imp: 10, raider: 30, boneArcher: 40, mireHexer: 50, skyCaller: 80, brute: 150 },
+    boss: 1000,
+    captive: 200,
+    district: 500,
+    chest: 50,
+    noDamageDistrict: 250,
+  },
   world: {
     physicsFps: 60,
     activeEnemyCap: 12,
