@@ -13,3 +13,13 @@
 | 9 | Arena platforms were lowered from y=930 to y=945 (rise 95 px ≤ 100 px max jump rise). | Reachability test flagged them. |
 | 10 | Input latches key-down events between polls. | Very short taps (and synthetic test input) would otherwise be missed by per-frame `isDown` polling. |
 | 11 | Hit-stop and slow-mo go through one priority-based `TimeController`. | Prevents competing effects from fighting over time scale. |
+| 12 | PLAY starts a fresh Story run immediately (150 ms fade); CONTINUE is shown only when a save exists. | Brief P1: no confirmation, no long load. |
+| 13 | Fullscreen + `screen.orientation.lock('landscape')` are attempted on touch PLAY, each in its own try/catch; the game starts either way. | iPhone Safari supports neither; must never block play. |
+| 14 | Portrait on a touch device shows a DOM "Rotate your phone" overlay and auto-pauses; blur/`visibilitychange` also auto-pause. | Brief P1/P2. |
+| 15 | Touch is a provider inside `InputManager` (`TouchInput`, pure logic) fed by a DOM overlay (`#touch-controls`). Gameplay reads only `InputState`; `device` gained `'touch'`, `aimSource` gained `'touch'`, plus `aimDist` for Thunderclap drag distance (0–480 px). | One input path; Player code unchanged except the clap-distance branch. |
+| 16 | Phaser pointer events with `wasTouch` are ignored by `InputManager` (no accidental attack from taps on the canvas); menus still use Phaser zones, so taps work everywhere. | Overlay buttons own touch gameplay input. |
+| 17 | Weapon-switch requests made mid-action are buffered (400 ms) and applied when the hero can act. | Chip taps during a sword combo were silently dropped; this only preserves input, no balance change. |
+| 18 | Mobile quality preset (`quality: auto/high/low`, auto = low on touch devices) only reduces visuals: reduced-effects path + half particle budget. Gameplay numbers are identical. FpsMonitor turns on Reduced Effects once if average FPS < 45 for 3 s and shows a toast. | Brief P2 performance rules. |
+| 19 | No DPR scaling is applied: the game renders a fixed 960×540 pixel-art canvas scaled by CSS, so the DPR ≤ 2 cap is satisfied by construction. | Keeps fill-rate constant on 3× phones. |
+| 20 | PWA = manifest (fullscreen, landscape) + generated placeholder icons; no service worker yet. | Add to Home Screen works without offline caching; avoids stale-cache bugs on Vercel redeploys. |
+| 21 | iPhone 14 E2E runs as iPhone viewport/UA/touch emulation in Chromium. | WebKit browsers are not installed in this environment; logged in QA. |

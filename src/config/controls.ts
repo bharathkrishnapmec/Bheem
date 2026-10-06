@@ -45,6 +45,7 @@ export const PAD = {
   LT: 6,
   RT: 7,
   BACK: 8,
+  SELECT: 8,
   START: 9,
   DPAD_UP: 12,
   DPAD_DOWN: 13,

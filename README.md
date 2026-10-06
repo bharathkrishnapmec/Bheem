@@ -15,6 +15,22 @@ npx vite preview   # serve the build
 
 Requires a WebGL-capable browser.
 
+## Play on a phone
+
+**Hosted (HTTPS):** open the Vercel URL on your phone. Tap **PLAY**; the game tries fullscreen + landscape. Touch controls appear on the first touch and hide again if you use a keyboard, mouse or gamepad (Settings → Touch Controls → *Always show touch* keeps them on).
+
+**Install as an app**
+- *Android Chrome:* menu → **Add to Home screen / Install app**. It launches fullscreen in landscape.
+- *iPhone Safari:* Share → **Add to Home Screen**. Launch from the icon for the fullscreen experience (Safari tabs cannot hide the address bar or lock orientation). There is no vibration on iPhone.
+
+**Test on your LAN during development**
+```bash
+npm run dev -- --host        # prints e.g. http://192.168.1.20:5173
+```
+Open that address on a phone on the same Wi-Fi (or turn it into a QR code with any QR generator, e.g. `npx qrcode-terminal http://192.168.1.20:5173`). Fullscreen, orientation lock and install need HTTPS, so use the Vercel deploy for those.
+
+**Touch layout:** left 40% of the screen is a floating joystick (push down to crouch/drop). Right side: ATTACK (tap = sword combo / bolt, hold = bow charge / Thunderclap, drag while holding to aim), JUMP (hold for higher), DASH (cooldown ring), SUMMON (fills with Rally, glows when ready), HOLD/Interact (appears only near shrines, captives, chests). Weapon chips above (tap the active one to cycle). Pause top-right. Settings → Touch Controls: size S/M/L, opacity, left-handed swap, haptics.
+
 ## Controls
 
 | Action | Keyboard / mouse | Gamepad |

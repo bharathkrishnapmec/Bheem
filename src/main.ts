@@ -10,6 +10,7 @@ import { GameScene } from '@/scenes/GameScene';
 import { UIScene } from '@/scenes/UIScene';
 import { PauseScene, GameOverScene, VictoryScene, ShrineScene } from '@/scenes/OverlayScenes';
 import { installLifecycle } from '@/platform/lifecycle';
+import { TouchControls } from '@/ui/touch/TouchControls';
 
 function hasWebGL(): boolean {
   try {
@@ -51,4 +52,5 @@ else {
   });
   (window as unknown as { __GAME__: Phaser.Game }).__GAME__ = game;
   installLifecycle();
+  TouchControls.mount();
 }

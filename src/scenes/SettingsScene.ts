@@ -11,6 +11,10 @@ import { InputManager } from '@/input/InputManager';
 import { pxText } from '@/ui/text';
 import { MenuList, drawPanel, vol, type MenuItem } from '@/ui/widgets';
 
+function cycle<T>(list: readonly T[], cur: T, d: number): T {
+  const i = list.indexOf(cur);
+  return list[(i + d + list.length) % list.length]!;
+}
 const step = (v: number, d: number) => Math.max(0, Math.min(1, Math.round((v + d) * 10) / 10));
 const KEY_LABEL: Record<string, string> = { MOUSE_LEFT: 'LMB', MOUSE_RIGHT: 'RMB', WHEEL_UP: 'Wheel Up', WHEEL_DOWN: 'Wheel Dn', ONE: '1', TWO: '2', THREE: '3' };
 export const keyLabel = (k: string | undefined): string => (k ? (KEY_LABEL[k] ?? k) : '-');
@@ -19,7 +23,7 @@ export class SettingsScene extends Phaser.Scene {
   private from = 'MainMenu';
   private input2!: InputManager;
   private menu: MenuList | null = null;
-  private page: 'main' | 'bind' = 'main';
+  private page: 'main' | 'bind' | 'touch' = 'main';
   private waiting: ActionId | null = null;
   private hint!: Phaser.GameObjects.BitmapText;
   private title!: Phaser.GameObjects.BitmapText;
@@ -83,10 +87,52 @@ export class SettingsScene extends Phaser.Scene {
           onRight: () => this.toggleFullscreen(),
           onLeft: () => this.toggleFullscreen(),
         },
+        {
+          label: () => STR.settings.quality,
+          value: () => STR.settings.qualityNames[s().quality] ?? s().quality,
+          onLeft: () => this.patch({ quality: cycle(['auto', 'high', 'low'] as const, s().quality, -1) }),
+          onRight: () => this.patch({ quality: cycle(['auto', 'high', 'low'] as const, s().quality, 1) }),
+        },
+        { label: () => STR.settings.touch, onConfirm: () => this.buildTouch() },
         { label: () => STR.settings.bindings, onConfirm: () => this.buildBind() },
         { label: () => STR.settings.back, onConfirm: () => this.close() },
       ],
-      { width: 440, spacing: 36, scale: 2, align: 'left' },
+      { width: 440, spacing: 31, scale: 2, align: 'left' },
+    );
+  }
+
+  private buildTouch(): void {
+    this.menu?.destroy();
+    this.page = 'touch';
+    this.title.setText(STR.settings.touch);
+    this.hint.setText('Tap or use arrows to change  -  Esc back');
+    const s = () => SaveManager.settings;
+    const toggle = (label: string, key: 'touchAlways' | 'leftHanded' | 'haptics' | 'toolboxPauses'): MenuItem => ({
+      label: () => label,
+      value: () => (s()[key] ? STR.settings.on : STR.settings.off),
+      onLeft: () => this.patch({ [key]: !s()[key] }),
+      onRight: () => this.patch({ [key]: !s()[key] }),
+    });
+    const op = (d: number) => this.patch({ touchOpacity: Math.max(0.3, Math.min(1, Math.round((s().touchOpacity + d) * 20) / 20)) });
+    this.menu = new MenuList(
+      this,
+      GAME_W / 2,
+      112,
+      [
+        toggle(STR.settings.touchAlways, 'touchAlways'),
+        {
+          label: () => STR.settings.touchSize,
+          value: () => s().touchSize,
+          onLeft: () => this.patch({ touchSize: cycle(['S', 'M', 'L'] as const, s().touchSize, -1) }),
+          onRight: () => this.patch({ touchSize: cycle(['S', 'M', 'L'] as const, s().touchSize, 1) }),
+        },
+        { label: () => STR.settings.touchOpacity, value: () => `${Math.round(s().touchOpacity * 100)}%`, onLeft: () => op(-0.05), onRight: () => op(0.05) },
+        toggle(STR.settings.leftHanded, 'leftHanded'),
+        toggle(STR.settings.haptics, 'haptics'),
+        toggle(STR.settings.toolboxPauses, 'toolboxPauses'),
+        { label: () => STR.settings.back, onConfirm: () => this.buildMain() },
+      ],
+      { width: 440, spacing: 40, scale: 2, align: 'left' },
     );
   }
 
@@ -159,7 +205,7 @@ export class SettingsScene extends Phaser.Scene {
     if (this.waiting) return;
     const s = this.input2.update();
     if (s.back) {
-      if (this.page === 'bind') {
+      if (this.page === 'bind' || this.page === 'touch') {
         AudioManager.play('uiBack');
         this.buildMain();
       } else this.close();

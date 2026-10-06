@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
+import { Quality } from '@/platform/Quality';
 import { balance } from '@/config/balance';
 import { PAL } from '@/config/palette';
-import { SaveManager } from '@/core/SaveManager';
 import { GameEvents } from '@/core/GameEvents';
 import { pxText } from '@/ui/text';
 
@@ -45,7 +45,7 @@ export class FX {
   }
 
   get reduced(): boolean {
-    return SaveManager.settings.reducedEffects;
+    return Quality.reduced();
   }
   private n(count: number): number {
     return Math.max(1, Math.round(count * (this.reduced ? 0.4 : 1)));
@@ -53,7 +53,7 @@ export class FX {
 
   add(p: Partial<Dust> & { x: number; y: number }, additive = false): void {
     const list = additive ? this.glow : this.dust;
-    if (list.length > balance.fx.maxParticles * 8) return;
+    if (list.length > Quality.particleBudget(balance.fx.maxParticles) * 8) return;
     list.push({ vx: 0, vy: 0, g: 0, drag: 0, life: 400, max: p.life ?? 400, size: 2, c: 0xffffff, c2: -1, delay: 0, hold: false, ...p } as Dust);
   }
 

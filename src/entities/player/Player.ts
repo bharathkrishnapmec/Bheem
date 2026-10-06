@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { clapDistanceFromDrag } from '@/input/TouchInput';
 import { balance, type UpgradeId } from '@/config/balance';
 import { PAL } from '@/config/palette';
 import { GameEvents } from '@/core/GameEvents';
@@ -31,6 +32,9 @@ export class Player extends Actor {
   ammo = 30;
   maxAmmo = 30;
   dmgMul = 1;
+  /** Weapon switch requested during an action; applied as soon as the hero can act (no input is lost). */
+  private weaponBuf: WeaponId | null = null;
+  private weaponBufT = 0;
   private coyote = 0;
   private jumpBuf = 0;
   private atkBuf = 0;
@@ -195,6 +199,10 @@ export class Player extends Actor {
     this.wasGrounded = grounded;
     if (i.jumpPressed) this.jumpBuf = P.jumpBufferMs;
     if (i.attackPressed) this.atkBuf = P.attackBufferMs;
+    if (i.weaponSelect) this.weaponBuf = i.weaponSelect;
+    else if (i.cycle) this.weaponBuf = WEAPONS[(WEAPONS.indexOf(this.weaponBuf ?? this.weapon) + i.cycle + 3) % 3]!;
+    if (i.weaponSelect || i.cycle) this.weaponBufT = 400;
+    else if ((this.weaponBufT -= dt) <= 0) this.weaponBuf = null;
 
     // flicker during i-frames
     this.setAlpha(this.invulnMs > 0 && this.st !== 'dash' && Math.floor(this.invulnMs / 60) % 2 === 0 ? 0.45 : 1);
@@ -229,8 +237,10 @@ export class Player extends Actor {
       return;
     }
     // weapon switching
-    if (i.weaponSelect) this.setWeapon(i.weaponSelect);
-    if (i.cycle) this.setWeapon(WEAPONS[(WEAPONS.indexOf(this.weapon) + i.cycle + 3) % 3]!);
+    if (this.weaponBuf && this.swapCd <= 0) {
+      this.setWeapon(this.weaponBuf);
+      this.weaponBuf = null;
+    }
 
     // dash
     if (i.dashPressed && this.dashCd <= 0 && (grounded || this.airDashes > 0)) {
@@ -579,6 +589,7 @@ export class Player extends Actor {
     const i = this.in;
     let tx: number;
     if (i.aimSource === 'mouse') tx = i.aimWorldX;
+    else if (i.aimSource === 'touch' && i.aimAngle !== null) tx = this.x + Math.sign(Math.cos(i.aimAngle) || this.facing) * clapDistanceFromDrag(i.aimDist);
     else {
       let best: Actor | null = null;
       let bd: number = S.clapMaxDistance;

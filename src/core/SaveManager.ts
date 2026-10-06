@@ -11,7 +11,21 @@ export interface SaveSettings {
   reducedEffects: boolean;
   damageNumbers: boolean;
   bindings: Record<ActionId, string[]>;
+  touchAlways: boolean;
+  touchSize: TouchSize;
+  touchOpacity: number;
+  leftHanded: boolean;
+  haptics: boolean;
+  quality: QualityPreset;
+  toolboxPauses: boolean;
 }
+
+export type TouchSize = 'S' | 'M' | 'L';
+export type QualityPreset = 'auto' | 'high' | 'low';
+const TOUCH_SIZES: readonly TouchSize[] = ['S', 'M', 'L'];
+const QUALITIES: readonly QualityPreset[] = ['auto', 'high', 'low'];
+const bool = (v: unknown, d: boolean): boolean => (typeof v === 'boolean' ? v : d);
+const oneOf = <T extends string>(v: unknown, list: readonly T[], d: T): T => (list.includes(v as T) ? (v as T) : d);
 
 export interface SaveProgress {
   checkpointId: string;
@@ -55,7 +69,22 @@ export class MemoryStorage implements StorageLike {
 export function defaultSettings(): SaveSettings {
   const bindings = {} as Record<ActionId, string[]>;
   for (const k of Object.keys(DEFAULT_KEY_BINDINGS) as ActionId[]) bindings[k] = [...DEFAULT_KEY_BINDINGS[k]];
-  return { master: 0.8, music: 0.6, sfx: 0.8, shake: 1, reducedEffects: false, damageNumbers: true, bindings };
+  return {
+    master: 0.8,
+    music: 0.6,
+    sfx: 0.8,
+    shake: 1,
+    reducedEffects: false,
+    damageNumbers: true,
+    bindings,
+    touchAlways: false,
+    touchSize: 'M',
+    touchOpacity: 0.6,
+    leftHanded: false,
+    haptics: true,
+    quality: 'auto',
+    toolboxPauses: true,
+  };
 }
 
 export function defaultSave(): SaveData {
@@ -89,6 +118,13 @@ export function parseSave(raw: unknown): SaveData {
     reducedEffects: typeof s.reducedEffects === 'boolean' ? s.reducedEffects : d.reducedEffects,
     damageNumbers: typeof s.damageNumbers === 'boolean' ? s.damageNumbers : d.damageNumbers,
     bindings,
+    touchAlways: bool(s.touchAlways, d.touchAlways),
+    touchSize: oneOf(s.touchSize, TOUCH_SIZES, d.touchSize),
+    touchOpacity: typeof s.touchOpacity === 'number' ? Math.max(0.3, Math.min(1, s.touchOpacity)) : d.touchOpacity,
+    leftHanded: bool(s.leftHanded, d.leftHanded),
+    haptics: bool(s.haptics, d.haptics),
+    quality: oneOf(s.quality, QUALITIES, d.quality),
+    toolboxPauses: bool(s.toolboxPauses, d.toolboxPauses),
   };
   const out: SaveData = { version: 1, settings };
   const p = migrated.progress as Record<string, unknown> | undefined;

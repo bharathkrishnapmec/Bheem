@@ -1,4 +1,7 @@
 import Phaser from 'phaser';
+import { Quality } from '@/platform/Quality';
+import { FpsMonitor } from '@/core/FpsMonitor';
+import { TouchControls } from '@/ui/touch/TouchControls';
 import { BG_COLOR, GAME_H, GAME_W } from '@/config/gameConfig';
 import { balance } from '@/config/balance';
 import { PAL } from '@/config/palette';
@@ -80,7 +83,7 @@ class GameWorld implements World {
     return out;
   }
   reduced(): boolean {
-    return SaveManager.settings.reducedEffects;
+    return Quality.reduced();
   }
   inCombat(): boolean {
     return [...this.enemies].some((e) => e.isAlive() && e.aggro) || !!this.boss?.isAlive();
@@ -245,6 +248,7 @@ export class GameScene extends Phaser.Scene {
       if (i.type === 'retry' || i.type === 'restart') this.retry();
     };
     const onBackground = () => this.openPause();
+    TouchControls.setPlaying(true);
     GameEvents.on('player:died', onDied);
     GameEvents.on('ui:intent', onRetry);
     GameEvents.on('app:background', onBackground);
@@ -252,6 +256,7 @@ export class GameScene extends Phaser.Scene {
       GameEvents.off('player:died', onDied);
       GameEvents.off('ui:intent', onRetry);
       GameEvents.off('app:background', onBackground);
+      TouchControls.setPlaying(false);
       TimeController.clear();
       TimeController.bind(null);
       this.scene.stop('UI');
@@ -500,13 +505,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   private reducedFx(): boolean {
-    return SaveManager.settings.reducedEffects;
+    return Quality.reduced();
   }
+
+  private fpsMon = new FpsMonitor();
 
   override update(_t: number, delta: number): void {
     const w = this.w;
     if (!w?.player) return;
     const realDt = Math.min(delta, 50);
+    if (this.fpsMon.update(delta) && !SaveManager.settings.reducedEffects) {
+      SaveManager.updateSettings({ reducedEffects: true });
+      w.toast(STR.settings.lowFpsToast, 'cyan');
+    }
     const scale = TimeController.update();
     const dt = realDt * scale;
     w.now += dt;
