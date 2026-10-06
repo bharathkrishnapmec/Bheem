@@ -29,6 +29,15 @@ npm run dev -- --host        # prints e.g. http://192.168.1.20:5173
 ```
 Open that address on a phone on the same Wi-Fi (or turn it into a QR code with any QR generator, e.g. `npx qrcode-terminal http://192.168.1.20:5173`). Fullscreen, orientation lock and install need HTTPS, so use the Vercel deploy for those.
 
+Phone emulation tests (Playwright, Chromium with Pixel 7 / iPhone 14 landscape viewports and touch):
+
+```bash
+npx playwright test --project=pixel7     # or --project=iphone14
+npx playwright test tests/e2e/mobile.spec.ts
+```
+
+They cover load, tap Play, move, attack, jump, pause, Creative, Boss Select, fight, Reset and no console errors. Emulation is not a real device; check feel on a phone too.
+
 **Touch layout:** left 40% of the screen is a floating joystick (push down to crouch/drop). Right side: ATTACK (tap = sword combo / bolt, hold = bow charge / Thunderclap, drag while holding to aim), JUMP (hold for higher), DASH (cooldown ring), SUMMON (fills with Rally, glows when ready), HOLD/Interact (appears only near shrines, captives, chests). Weapon chips above (tap the active one to cycle). Pause top-right. Settings → Touch Controls: size S/M/L, opacity, left-handed swap, haptics.
 
 ## Creative Mode
