@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { TouchControls } from '@/ui/touch/TouchControls';
 import { GAME_H, GAME_W } from '@/config/gameConfig';
 import { balance } from '@/config/balance';
 import { PAL } from '@/config/palette';
@@ -15,6 +16,11 @@ const TOAST_COLORS = { gold: PAL.cleanseGold, red: PAL.danger, cyan: PAL.statusC
 /** HUD overlay (UI_DESIGN §HUD): bottom-left status line, bottom-right resource panel, boss bar, toasts, cards. */
 export class UIScene extends Phaser.Scene {
   private g!: Phaser.GameObjects.Graphics;
+  private gl!: Phaser.GameObjects.Graphics;
+  private gr!: Phaser.GameObjects.Graphics;
+  private blC!: Phaser.GameObjects.Container;
+  private brC!: Phaser.GameObjects.Container;
+  private touchLayout = false;
   private healthLine!: Phaser.GameObjects.BitmapText;
   private hpText!: Phaser.GameObjects.BitmapText;
   private statusText!: Phaser.GameObjects.BitmapText;
@@ -65,25 +71,36 @@ export class UIScene extends Phaser.Scene {
     this.shownHp = this.lagHp = s.hp;
 
     // bottom-left: status line
-    this.add.image(22, GAME_H - 58, 'icon_heart').setOrigin(0.5);
-    this.healthLine = pxText(this, 38, GAME_H - 66, STR.health(1), 2, PAL.statusCyan);
-    this.hpText = pxText(this, 210, GAME_H - 36, '', 1, 0xffffff);
-    this.statusText = pxText(this, 16, GAME_H - 86, '', 1, PAL.statusCyan);
+    this.gl = this.add.graphics();
+    this.blC = this.add.container(0, 0, [
+      this.gl,
+      this.add.image(22, GAME_H - 58, 'icon_heart').setOrigin(0.5),
+      (this.healthLine = pxText(this, 38, GAME_H - 66, STR.health(1), 2, PAL.statusCyan)),
+      (this.hpText = pxText(this, 210, GAME_H - 36, '', 1, 0xffffff)),
+      (this.statusText = pxText(this, 16, GAME_H - 86, '', 1, PAL.statusCyan)),
+    ]);
+    this.touchLayout = false;
 
     // bottom-right: resource panel
     const px = GAME_W - 236;
     const py = GAME_H - 100;
-    this.add.image(px + 20, py + 18, 'icon_coin');
-    this.coinText = pxText(this, px + 34, py + 12, '0', 2, PAL.cleanseGold);
-    this.add.image(px + 120, py + 18, 'icon_arrow');
-    this.ammoText = pxText(this, px + 134, py + 12, '0', 2, 0xffffff);
-    this.add.image(px + 20, py + 44, 'icon_captive');
-    this.rescueText = pxText(this, px + 34, py + 38, '0/12', 2, 0xe8e0f0);
-    this.rallyText = pxText(this, px + 14, py + 62, STR.hud.rally, 1, PAL.allyGold);
+    this.gr = this.add.graphics();
+    this.brC = this.add.container(0, 0, [this.gr]);
+    this.brC.add([
+      this.add.image(px + 20, py + 18, 'icon_coin'),
+      (this.coinText = pxText(this, px + 34, py + 12, '0', 2, PAL.cleanseGold)),
+      this.add.image(px + 120, py + 18, 'icon_arrow'),
+      (this.ammoText = pxText(this, px + 134, py + 12, '0', 2, 0xffffff)),
+      this.add.image(px + 20, py + 44, 'icon_captive'),
+      (this.rescueText = pxText(this, px + 34, py + 38, '0/12', 2, 0xe8e0f0)),
+      (this.rallyText = pxText(this, px + 14, py + 62, STR.hud.rally, 1, PAL.allyGold)),
+    ]);
     (['sword', 'bow', 'staff'] as WeaponId[]).forEach((wp, i) => {
       this.weaponIcons[wp] = this.add.image(px + 140 + i * 30, py + 46, `icon_${wp}`);
+      this.brC.add(this.weaponIcons[wp]);
     });
     this.weaponName = pxText(this, px + 126, py + 62, '', 1, PAL.statusCyan);
+    this.brC.add(this.weaponName);
 
     // top
     this.districtText = pxText(this, 16, 12, '', 1, PAL.cleanseGold);
@@ -199,25 +216,30 @@ export class UIScene extends Phaser.Scene {
     this.shownRally += (s.rally - this.shownRally) * Math.min(1, dt / 120);
 
     // --- bottom-left
+    const gl = this.gl;
+    const gr = this.gr;
+    gl.clear();
+    gr.clear();
+    this.applyLayout(TouchControls.visible);
     const pct = s.hp / s.maxHp;
     this.healthLine.setText(STR.health(pct)).setTint(pct < 0.2 && Math.floor(this.t / 250) % 2 ? PAL.danger : PAL.statusCyan);
-    drawPanel(g, 8, GAME_H - 96, 300, 88, { alpha: 0.72 });
+    drawPanel(gl, 8, GAME_H - 96, 300, 88, { alpha: 0.72 });
     const bx = 16;
     const by = GAME_H - 38;
-    g.fillStyle(PAL.outline, 1).fillRect(bx - 2, by - 2, 184, 14);
-    g.fillStyle(0x3a1020, 1).fillRect(bx, by, 180, 10);
-    g.fillStyle(0xffffff, 0.8).fillRect(bx, by, (180 * Math.max(0, this.lagHp)) / s.maxHp, 10);
-    g.fillStyle(this.hurtT > 0 && Math.floor(this.t / 60) % 2 ? 0xffffff : PAL.danger, 1).fillRect(bx, by, (180 * Math.max(0, this.shownHp)) / s.maxHp, 10);
-    g.fillStyle(0xffffff, 0.25).fillRect(bx, by, (180 * Math.max(0, this.shownHp)) / s.maxHp, 3);
+    gl.fillStyle(PAL.outline, 1).fillRect(bx - 2, by - 2, 184, 14);
+    gl.fillStyle(0x3a1020, 1).fillRect(bx, by, 180, 10);
+    gl.fillStyle(0xffffff, 0.8).fillRect(bx, by, (180 * Math.max(0, this.lagHp)) / s.maxHp, 10);
+    gl.fillStyle(this.hurtT > 0 && Math.floor(this.t / 60) % 2 ? 0xffffff : PAL.danger, 1).fillRect(bx, by, (180 * Math.max(0, this.shownHp)) / s.maxHp, 10);
+    gl.fillStyle(0xffffff, 0.25).fillRect(bx, by, (180 * Math.max(0, this.shownHp)) / s.maxHp, 3);
     this.hpText.setText(`${Math.ceil(s.hp)}/${s.maxHp}`).setPosition(bx + 188, by);
     const pyb = GAME_H - 22;
-    g.fillStyle(PAL.outline, 1).fillRect(bx - 2, pyb - 2, 144, 10);
-    g.fillStyle(0x10203a, 1).fillRect(bx, pyb, 140, 6);
-    g.fillStyle(this.pranaDenyT > 0 && Math.floor(this.t / 60) % 2 ? PAL.danger : PAL.prana, 1).fillRect(bx, pyb, (140 * s.prana) / s.maxPrana, 6);
+    gl.fillStyle(PAL.outline, 1).fillRect(bx - 2, pyb - 2, 144, 10);
+    gl.fillStyle(0x10203a, 1).fillRect(bx, pyb, 140, 6);
+    gl.fillStyle(this.pranaDenyT > 0 && Math.floor(this.t / 60) % 2 ? PAL.danger : PAL.prana, 1).fillRect(bx, pyb, (140 * s.prana) / s.maxPrana, 6);
     // dash pip
     const dashReady = this.dashCd <= 0;
-    g.fillStyle(dashReady ? PAL.statusCyan : 0x404060, 1).fillRect(bx + 150, pyb - 2, 10, 10);
-    if (!dashReady) g.fillStyle(PAL.statusCyan, 1).fillRect(bx + 150, pyb + 8 - (10 * (1 - this.dashCd / this.dashTotal)), 10, 10 * (1 - this.dashCd / this.dashTotal));
+    gl.fillStyle(dashReady ? PAL.statusCyan : 0x404060, 1).fillRect(bx + 150, pyb - 2, 10, 10);
+    if (!dashReady) gl.fillStyle(PAL.statusCyan, 1).fillRect(bx + 150, pyb + 8 - (10 * (1 - this.dashCd / this.dashTotal)), 10, 10 * (1 - this.dashCd / this.dashTotal));
     const tags: string[] = [];
     if (s.statusEffects.includes('slow')) tags.push(STR.hud.slow);
     if (s.statusEffects.includes('shocked')) tags.push('SHOCKED');
@@ -227,23 +249,23 @@ export class UIScene extends Phaser.Scene {
     // --- bottom-right
     const px = GAME_W - 236;
     const py = GAME_H - 100;
-    drawPanel(g, px, py, 228, 92, { alpha: 0.72 });
+    drawPanel(gr, px, py, 228, 92, { alpha: 0.72 });
     this.coinText.setText(String(s.coins));
     this.ammoText.setText(String(Math.floor(s.ammo))).setTint(s.ammo < 1 ? PAL.danger : 0xffffff);
     this.rescueText.setText(`${s.rescued}/${s.totalCaptives}`);
     const rx = px + 14;
     const ry = py + 74;
     const ready = s.rally >= s.summonCost && this.summonCd <= 0 && !s.squadActive;
-    g.fillStyle(PAL.outline, 1).fillRect(rx - 2, ry - 2, 104, 10);
-    g.fillStyle(0x2a2010, 1).fillRect(rx, ry, 100, 6);
-    g.fillStyle(ready && Math.floor(this.t / 200) % 2 ? 0xffffff : PAL.allyGold, 1).fillRect(rx, ry, (100 * this.shownRally) / s.maxRally, 6);
-    g.fillStyle(0xffffff, 0.8).fillRect(rx + (100 * s.summonCost) / s.maxRally, ry - 2, 1, 10);
+    gr.fillStyle(PAL.outline, 1).fillRect(rx - 2, ry - 2, 104, 10);
+    gr.fillStyle(0x2a2010, 1).fillRect(rx, ry, 100, 6);
+    gr.fillStyle(ready && Math.floor(this.t / 200) % 2 ? 0xffffff : PAL.allyGold, 1).fillRect(rx, ry, (100 * this.shownRally) / s.maxRally, 6);
+    gr.fillStyle(0xffffff, 0.8).fillRect(rx + (100 * s.summonCost) / s.maxRally, ry - 2, 1, 10);
     this.rallyText.setText(s.squadActive ? STR.hud.squadActive : ready ? STR.hud.summonReady : this.summonCd > 0 ? `${STR.hud.rally} ${Math.ceil(this.summonCd / 1000)}s` : STR.hud.rally);
     (Object.keys(this.weaponIcons) as WeaponId[]).forEach((wp) => {
       const sel = wp === s.weapon;
       const ic = this.weaponIcons[wp];
       ic.setAlpha(sel ? 1 : 0.45).setScale(sel ? 1.15 : 1);
-      if (sel) g.lineStyle(2, PAL.cleanseGold, 1).strokeRect(ic.x - 13, ic.y - 13, 26, 26);
+      if (sel) gr.lineStyle(2, PAL.cleanseGold, 1).strokeRect(ic.x - 13, ic.y - 13, 26, 26);
     });
     this.weaponName.setText(STR.weapons[s.weapon].toUpperCase());
 
@@ -278,5 +300,15 @@ export class UIScene extends Phaser.Scene {
       g.fillStyle(PAL.ruinViolet, 1).fillRect(x, 56, (w * this.bannerInfo.hp) / this.bannerInfo.max, 6);
       if (this.bannerInfo.t <= 0 || this.bannerInfo.hp <= 0) this.bannerInfo = null;
     }
+  }
+
+  /** Touch layout moves the primary HUD to the top so thumbs never cover HP, Prana or Rally. */
+  private applyLayout(touch: boolean): void {
+    if (touch === this.touchLayout) return;
+    this.touchLayout = touch;
+    this.blC.setPosition(0, touch ? -(GAME_H - 104) : 0);
+    this.brC.setPosition(touch ? -56 : 0, touch ? -(GAME_H - 108) : 0);
+    this.districtText.setPosition(16, touch ? 108 : 12);
+    this.objective.setPosition(16, touch ? 122 : 26);
   }
 }
