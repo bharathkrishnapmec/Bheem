@@ -202,7 +202,7 @@ export class Player extends Actor {
     if (i.weaponSelect) this.weaponBuf = i.weaponSelect;
     else if (i.cycle) this.weaponBuf = WEAPONS[(WEAPONS.indexOf(this.weaponBuf ?? this.weapon) + i.cycle + 3) % 3]!;
     if (i.weaponSelect || i.cycle) this.weaponBufT = 400;
-    else if ((this.weaponBufT -= dt) <= 0) this.weaponBuf = null;
+    else if (this.st === 'normal' && this.canAct() && (this.weaponBufT -= dt) <= 0) this.weaponBuf = null;
 
     // flicker during i-frames
     this.setAlpha(this.invulnMs > 0 && this.st !== 'dash' && Math.floor(this.invulnMs / 60) % 2 === 0 ? 0.45 : 1);

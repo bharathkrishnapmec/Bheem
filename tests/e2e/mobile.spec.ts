@@ -53,17 +53,13 @@ test('mobile: tap PLAY, move with joystick, attack + jump simultaneously, pause'
   const sy = vp.height * 0.7;
   await t.down(1, sx, sy);
   await t.move(1, sx + 50, sy);
-  await page.waitForTimeout(700);
-  const x1 = (await player(page)).x;
-  expect(x1).toBeGreaterThan(x0 + 40);
+  await expect.poll(async () => (await player(page)).x, { timeout: 5_000 }).toBeGreaterThan(x0 + 40);
   // attack + jump while still moving (3 simultaneous touches)
   const atk = await center(page, '#touch-controls [data-control="attack"]');
   const jmp = await center(page, '#touch-controls [data-control="jump"]');
   await t.down(2, atk.x, atk.y);
   await t.down(3, jmp.x, jmp.y);
-  await page.waitForTimeout(120);
-  const p2 = await player(page);
-  expect(p2.st).toBe('attack');
+  await expect.poll(async () => (await player(page)).st, { timeout: 3_000, intervals: [30] }).toBe('attack');
   await t.up(2);
   await t.up(3);
   await t.up(1);
@@ -71,8 +67,7 @@ test('mobile: tap PLAY, move with joystick, attack + jump simultaneously, pause'
   const bow = await center(page, '#touch-controls [data-control="bow"]');
   await t.down(4, bow.x, bow.y);
   await t.up(4);
-  await page.waitForTimeout(250);
-  expect((await player(page)).weapon).toBe('bow');
+  await expect.poll(async () => (await player(page)).weapon, { timeout: 5_000 }).toBe('bow');
   // pause button
   const pause = await center(page, '#touch-controls [data-control="pause"]');
   await t.down(5, pause.x, pause.y);
