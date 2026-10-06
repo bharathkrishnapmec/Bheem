@@ -77,3 +77,49 @@ test('mobile: tap PLAY, move with joystick, attack + jump simultaneously, pause'
   expect(await hooks(page)).toBe('Pause');
   expect(errors).toEqual([]);
 });
+
+test('mobile: Creative Mode → Sandbox → Reset → Boss Select → fight → result, all by touch', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  type CH = { scene: string; creative: () => { alive: number; bossStage: string; mode: string }; tool: (n: string, a?: string) => boolean; boss: () => { hp: number } | null; hitBoss: (d: number) => void };
+  const H = <T>(fn: string) => page.evaluate(`(() => { const h = window.__BHEEM__; return ${fn}; })()`) as Promise<T>;
+  const scene = () => page.evaluate(() => (window as unknown as { __BHEEM__?: CH }).__BHEEM__?.scene);
+  await page.goto('/');
+  await page.waitForFunction(() => (window as unknown as { __BHEEM__?: CH }).__BHEEM__?.scene === 'MainMenu', null, { timeout: 60_000 });
+  const c = (await page.locator('canvas').boundingBox())!;
+  const tap = (gx: number, gy: number) => page.touchscreen.tap(c.x + (gx / 960) * c.width, c.y + (gy / 540) * c.height);
+  /** Menus select on first tap and confirm on the next if needed. */
+  const tapTo = async (gx: number, gy: number, target: string) => {
+    for (let i = 0; i < 3 && (await scene()) !== target; i++) {
+      await tap(gx, gy);
+      await page.waitForTimeout(300);
+    }
+    await expect.poll(scene, { timeout: 5_000 }).toBe(target);
+  };
+  await tapTo(480, 330, 'CreativeMenu');
+  await tapTo(480, 230, 'Game');
+  await expect.poll(() => H<string>('h.creative().mode')).toBe('creative');
+  const reset = page.locator('#touch-controls [data-control="reset"]');
+  await expect(reset).toBeVisible();
+  await expect(page.locator('#touch-controls [data-control="toolbox"]')).toBeVisible();
+  for (let i = 0; i < 4; i++) await H("h.tool('spawn','raider')");
+  await expect.poll(() => H<number>('h.creative().alive')).toBe(4);
+  await reset.tap();
+  await expect.poll(() => H<number>('h.creative().alive'), { timeout: 1_000 }).toBe(0);
+  await page.locator('#touch-controls [data-control="toolbox"]').tap();
+  await expect.poll(scene).toBe('Toolbox');
+  await tapTo(480, 70 + 13 * 32 + 5, 'Game'); // Close row
+  await page.locator('#touch-controls [data-control="bossSelect"]').tap();
+  await expect.poll(scene).toBe('BossSelect');
+  await tapTo(318, 172, 'Game'); // tap the selected Kaalasura card to fight
+  await expect.poll(() => H<string>('h.creative().bossStage'), { timeout: 3_000 }).toBe('fight');
+  for (let i = 0; i < 60 && ((await H<{ hp: number } | null>('h.boss()'))?.hp ?? 0) > 0; i++) {
+    await H('h.hitBoss(60)');
+    await page.waitForTimeout(100);
+  }
+  await expect.poll(scene, { timeout: 15_000 }).toBe('CreativeResult');
+  await tapTo(480, 280, 'Game'); // Rematch
+  await expect.poll(() => H<string>('h.creative().bossStage'), { timeout: 3_000 }).toBe('fight');
+  expect(errors).toEqual([]);
+});

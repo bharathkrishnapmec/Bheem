@@ -31,6 +31,15 @@ Open that address on a phone on the same Wi-Fi (or turn it into a QR code with a
 
 **Touch layout:** left 40% of the screen is a floating joystick (push down to crouch/drop). Right side: ATTACK (tap = sword combo / bolt, hold = bow charge / Thunderclap, drag while holding to aim), JUMP (hold for higher), DASH (cooldown ring), SUMMON (fills with Rally, glows when ready), HOLD/Interact (appears only near shrines, captives, chests). Weapon chips above (tap the active one to cycle). Pause top-right. Settings → Touch Controls: size S/M/L, opacity, left-handed swap, haptics.
 
+## Creative Mode
+
+Main Menu → **CREATIVE MODE**. Everything is unlocked (all weapons, max upgrades, full 12-villager squad, Rally full). Creative never reads or writes Story progress.
+
+- **Sandbox – Training Yard**: 1600 px yard with walls and one-way platforms.
+- **Toolbox** (`Tab`, TOOLS button, or pause menu): God Mode, Infinite Prana/Arrows, Instant Rally, No Dash Cooldown, Slow Motion 1× / 0.5× / 0.25×, damage numbers, spawn any enemy (excess beyond 12 is queued), Training Dummy, health/Prana/arrow pickups, Summon Squad, Clear All, move list.
+- **Boss Select** (`B`, BOSSES button): Kaalasura or the elite Brute; pick start phase, allies and skip intro. Result panel shows time, damage taken, hits landed and best time.
+- **Quick Reset** (`Backspace`, RESET button, or pause menu): full hero restore and a clean field in well under 500 ms.
+
 ## Controls
 
 | Action | Keyboard / mouse | Gamepad |

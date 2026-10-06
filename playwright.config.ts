@@ -4,6 +4,8 @@ export default defineConfig({
   testDir: './tests/e2e',
   timeout: 90_000,
   retries: 0,
+  // SwiftShader WebGL is CPU-bound; more workers starve the game loop and make timing checks flaky.
+  workers: 2,
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'retain-on-failure',

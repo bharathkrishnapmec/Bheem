@@ -127,6 +127,9 @@ export class GameScene extends Phaser.Scene {
   private miniBoss: Actor | null = null;
   private pendingResult: Record<string, unknown> | null = null;
   private resultAt = 0;
+  /** Simulated ms since the scene's first frame (Creative fight-start latency). */
+  private simMs = 0;
+  private fightStartMs = -1;
   private bossStage: BossStage = 'none';
   private checkpoint = { id: '', x: 0, y: 0 };
   private holdT = 0;
@@ -147,6 +150,8 @@ export class GameScene extends Phaser.Scene {
     const creative = !!data.creative;
     if (data.creative) GameContext.enterCreative(data.creative);
     else GameContext.enterStory();
+    this.simMs = 0;
+    this.fightStartMs = -1;
     const res = creative ? loadCreativeArena() : loadVillage();
     if (!res.level) {
       pxText(this, GAME_W / 2, GAME_H / 2, `${STR.errors.level}\n${res.error ?? ''}`, 2, PAL.danger).setOrigin(0.5);
@@ -507,6 +512,7 @@ export class GameScene extends Phaser.Scene {
     if (this.creativeCtl) {
       if (GameContext.start?.allies === 'auto') this.creativeCtl.summonSquad();
       this.creativeCtl.fighting = true;
+      this.fightStartMs = this.simMs;
     }
     this.updateLighting();
   }
@@ -527,6 +533,7 @@ export class GameScene extends Phaser.Scene {
     GameStore.setBoss(fight.actor.hp, fight.actor.maxHp, 1);
     if (cs.allies === 'auto') ctl.summonSquad();
     ctl.fighting = true;
+    this.fightStartMs = this.simMs;
   }
 
   private updateMiniBoss(): void {
@@ -685,6 +692,7 @@ export class GameScene extends Phaser.Scene {
     const w = this.w;
     if (!w?.player) return;
     const realDt = Math.min(delta, 50);
+    this.simMs += delta;
     if (this.fpsMon.update(delta) && !SaveManager.settings.reducedEffects) {
       SaveManager.updateSettings({ reducedEffects: true });
       w.toast(STR.settings.lowFpsToast, 'cyan');
@@ -875,10 +883,12 @@ export class GameScene extends Phaser.Scene {
         queue: this.creativeCtl?.queue.length ?? 0,
         alive: [...w.enemies].filter((e) => e.isAlive()).length,
         bossStage: this.bossStage,
+        fightStartMs: this.fightStartMs,
         rally: GameStore.state.rally,
         upgrades: { ...GameStore.state.upgrades },
       }),
       creativeReset: () => this.creativeReset(),
+      clearLoot: () => w.loot.clear(),
       tool: (name: 'spawn' | 'clear' | 'summon', arg?: string) => {
         const c = this.creativeCtl;
         if (!c) return false;

@@ -41,24 +41,26 @@ test('sword combo, bow charge and staff bolt all work against live enemies', asy
     await page.keyboard.press('j');
     await page.waitForTimeout(180);
   }
-  await expect.poll(async () => (await H<number[]>(page, 'h.enemyHp()')).reduce((a, b) => a + b, 0), { timeout: 3_000 }).toBeLessThan(before.reduce((a, b) => a + b, 0));
+  await expect.poll(async () => (await H<number[]>(page, 'h.enemyHp()')).reduce((a, b) => a + b, 0), { timeout: 6_000 }).toBeLessThan(before.reduce((a, b) => a + b, 0));
   await H(page, 'h.killAll()');
 
-  // bow: switch, hold to charge, release -> one arrow spent
+  // bow: switch once the sword combo has recovered (mid-combo switches are buffered), hold to charge, release -> one arrow spent
+  await expect.poll(async () => (await H<P>(page, 'h.player()')).st, { timeout: 10_000 }).toBe('normal');
+  await H(page, 'h.clearLoot()'); // raider drops (arrow bundles) would refill ammo mid-check
   await page.keyboard.press('2');
   await expect.poll(async () => (await H<P>(page, 'h.player()')).weapon, { timeout: 3_000 }).toBe('bow');
   const ammo0 = (await H<P>(page, 'h.player()')).ammo;
   await page.keyboard.down('j');
   await page.waitForTimeout(600);
   await page.keyboard.up('j');
-  await expect.poll(async () => (await H<P>(page, 'h.player()')).ammo, { timeout: 3_000 }).toBeLessThan(ammo0);
+  await expect.poll(async () => (await H<P>(page, 'h.player()')).ammo, { timeout: 3_000, intervals: [30] }).toBeLessThan(ammo0);
 
   // staff: tap -> bolt spends prana
   await page.keyboard.press('3');
   await expect.poll(async () => (await H<P>(page, 'h.player()')).weapon, { timeout: 3_000 }).toBe('staff');
   const pr0 = (await H<P>(page, 'h.player()')).prana;
   await page.keyboard.press('j');
-  await expect.poll(async () => (await H<P>(page, 'h.player()')).prana, { timeout: 3_000 }).toBeLessThan(pr0);
+  await expect.poll(async () => (await H<P>(page, 'h.player()')).prana, { timeout: 3_000, intervals: [30] }).toBeLessThan(pr0);
   expect(errors).toEqual([]);
 });
 
