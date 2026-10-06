@@ -69,7 +69,8 @@ export class Raider extends Enemy {
       this.telegraph(ms);
       return;
     }
-    const hasToken = this.world.tokens.has(this.uid) || t !== this.player;
+    // circling raiders step in as soon as an attack token frees up
+    const hasToken = this.world.tokens.has(this.uid) || t !== this.player || (adx <= balance.enemyAI.circleMax && this.cd <= 0 && this.requestToken());
     if (hasToken || adx > balance.enemyAI.circleMax) this.moveToward(t.x, 1, R.attackRange - 16);
     else if (adx < balance.enemyAI.circleMin) this.moveDir(-Math.sign(this.dx()), 0.6);
     else {

@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { EnemyType } from '@/core/types';
 import { Quality } from '@/platform/Quality';
 import { FpsMonitor } from '@/core/FpsMonitor';
 import { TouchControls } from '@/ui/touch/TouchControls';
@@ -561,7 +562,7 @@ export class GameScene extends Phaser.Scene {
           if (r.applied) GameEvents.emit('player:hazard', {});
         }
     }
-    for (const e of w.enemies) if (e.isAlive() && e.y > w.level.height + 100) e.hp = 0;
+    for (const e of w.enemies) if (e.isAlive() && e.y > w.level.height + 100) w.combat.hit(e, { amount: 9999, kind: 'contact', faction: 'neutral', dirX: 0, knockback: 0, poise: 0, ignoreIFrames: true, noHitStop: true });
 
     const ba = w.level.bossArena;
     if (this.bossStage === 'none' && p.x > ba.trigger.x && !p.dead) this.startBoss();
@@ -679,7 +680,11 @@ export class GameScene extends Phaser.Scene {
     const w = this.w;
     (window as unknown as { __BHEEM__: unknown }).__BHEEM__ = {
       scene: 'Game',
-      player: () => ({ x: w.player.x, y: w.player.y, hp: w.player.hp, st: w.player.st, weapon: w.player.weapon }),
+      player: () => ({ x: w.player.x, y: w.player.y, hp: w.player.hp, st: w.player.st, weapon: w.player.weapon, ammo: w.player.ammo, prana: w.player.prana }),
+      spawn: (type: EnemyType, dx: number) => (w.spawner.spawnEnemy(type, w.player.x + dx, w.player.y, { aggro: true, required: false }) ? true : false),
+      enemyHp: () => [...w.enemies].filter((e) => e.isAlive()).map((e) => e.hp),
+      enemyInfo: () => [...w.enemies].filter((e) => e.isAlive()).map((e) => ({ type: e.type, x: Math.round(e.x), y: Math.round(e.y), hp: e.hp, ai: e.ai, aggro: e.aggro, target: e.target === w.player })),
+      tokens: () => ({ inUse: w.tokens.inUse, capacity: w.tokens.capacity }),
       enemies: () => [...w.enemies].filter((e) => e.isAlive()).length,
       district: () => w.districts.current()?.id ?? null,
       boss: () => (w.boss ? { hp: w.boss.hp, phase: w.boss.phase } : null),
