@@ -1,4 +1,5 @@
 import { balance } from '@/config/balance';
+import { GameContext } from '@/modes/creative/GameContext';
 import { SaveManager } from '@/core/SaveManager';
 import { TimeController } from '@/core/TimeController';
 import { GameEvents } from '@/core/GameEvents';
@@ -53,6 +54,7 @@ export class CombatSystem {
     if (!target.isAlive()) return MISS;
     if (!isHostile(h.faction, target.faction)) return MISS;
     if (target.invulnMs > 0 && !h.ignoreIFrames) return MISS;
+    if (target === this.world.player && GameContext.modifiers.godMode) return MISS;
     const mult = (h.multiplier ?? 1) * target.damageTakenMul(h);
     const dmg = computeFinalDamage(h.amount, mult, target.armor);
     target.hp = Math.max(0, target.hp - dmg);
@@ -82,6 +84,7 @@ export class CombatSystem {
     if (SaveManager.settings.damageNumbers) {
       GameEvents.emit('damage:number', { x: target.x, y: target.body.y - 6, amount: dmg, kind: isHero ? 'hero' : heavy ? 'heavy' : 'normal' });
     }
+    if (heroSide && target.faction === 'enemy') GameEvents.emit('hit:landed', { x: target.x, y: target.body.y, dmg });
     if (h.crit && !isHero) fx.popText(target.x, target.body.y - 26, 'CRITICAL HIT', PAL.danger, 2);
     const sparkCol = h.kind === 'lightning' ? PAL.statusCyan : h.kind === 'magic' ? PAL.ruinGlow : 0xffffff;
     fx.sparks(hx, hy, h.dirX, sparkCol, balance.fx.hitSparkCount + (heavy ? 4 : 0));

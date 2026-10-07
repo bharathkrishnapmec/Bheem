@@ -410,7 +410,7 @@ export class Kaalasura extends Actor {
     this.st = 'dead';
     this.body.setVelocity(0, 0);
     GameStore.setBoss(0, this.maxHp, this.phase);
-    for (const m of this.minions) if (m.isAlive()) m.hp = 0;
+    for (const m of this.minions) if (m.isAlive()) this.world.combat.hit(m, { amount: 9999, kind: 'contact', faction: 'neutral', dirX: 0, knockback: 0, poise: 0, ignoreIFrames: true, noHitStop: true });
     this.onDefeated?.();
   }
 

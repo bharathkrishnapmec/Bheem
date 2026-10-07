@@ -170,3 +170,109 @@ export function vol(v: number): string {
   const n = Math.round(v * 10);
   return '[' + '='.repeat(n) + '-'.repeat(10 - n) + ']';
 }
+
+/** Large tappable pixel button (touch-friendly). Hover/focus highlight, fires on pointerup inside. */
+export class PixelButton {
+  readonly container: Phaser.GameObjects.Container;
+  private g: Phaser.GameObjects.Graphics;
+  private label: Phaser.GameObjects.BitmapText;
+  focused = false;
+  private pressed = false;
+
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    readonly w: number,
+    readonly h: number,
+    text: string,
+    private onClick: () => void,
+    private opts: { scale?: number; color?: number; trim?: number; fill?: number } = {},
+  ) {
+    this.container = scene.add.container(x, y);
+    this.g = scene.add.graphics();
+    this.label = pxText(scene, 0, 0, text, opts.scale ?? 2, opts.color ?? 0xe8e0f0).setOrigin(0.5);
+    const zone = scene.add.zone(0, 0, w, h).setInteractive({ useHandCursor: true });
+    zone.on('pointerover', () => this.setFocus(true));
+    zone.on('pointerout', () => {
+      this.pressed = false;
+      this.draw();
+    });
+    zone.on('pointerdown', () => {
+      this.pressed = true;
+      this.draw();
+    });
+    zone.on('pointerup', () => {
+      if (!this.pressed) return;
+      this.pressed = false;
+      this.draw();
+      this.fire();
+    });
+    this.container.add([this.g, this.label, zone]);
+    this.draw();
+  }
+
+  fire(): void {
+    AudioManager.play('uiConfirm');
+    this.onClick();
+  }
+
+  setText(t: string): this {
+    this.label.setText(t);
+    return this;
+  }
+
+  setFocus(on: boolean): void {
+    if (this.focused === on) return;
+    this.focused = on;
+    this.draw();
+  }
+
+  private draw(): void {
+    const g = this.g;
+    g.clear();
+    const y = this.pressed ? 2 : 0;
+    drawPanel(g, -this.w / 2, -this.h / 2 + y, this.w, this.h, {
+      fill: this.focused ? PAL.panelLight : (this.opts.fill ?? PAL.panel),
+      edge: this.focused ? PAL.cleanseGold : PAL.panelEdge,
+      trim: this.opts.trim ?? PAL.cleanseGold,
+      alpha: 0.95,
+    });
+    this.label.setY(y).setTint(this.focused ? PAL.cleanseGold : (this.opts.color ?? 0xe8e0f0));
+  }
+
+  destroy(): void {
+    this.container.destroy();
+  }
+}
+
+/** Keyboard/gamepad focus ring over a set of PixelButtons (vertical or grid by index order). */
+export class ButtonNav {
+  index = 0;
+  constructor(
+    private buttons: PixelButton[],
+    private cols = 1,
+  ) {
+    this.buttons.forEach((b, i) =>
+      b.container.list.forEach((o) => {
+        if (o instanceof Phaser.GameObjects.Zone) o.on('pointerover', () => this.focus(i, false));
+      }),
+    );
+    this.focus(0, false);
+  }
+
+  focus(i: number, sfx = true): void {
+    if (!this.buttons.length) return;
+    this.index = (i + this.buttons.length) % this.buttons.length;
+    this.buttons.forEach((b, k) => b.setFocus(k === this.index));
+    if (sfx) AudioManager.play('uiMove');
+  }
+
+  update(input: InputState): void {
+    if (input.menuUp) this.focus(this.index - this.cols);
+    if (input.menuDown) this.focus(this.index + this.cols);
+    if (this.cols > 1 && input.menuLeft) this.focus(this.index - 1);
+    if (this.cols > 1 && input.menuRight) this.focus(this.index + 1);
+    if (input.confirm) this.buttons[this.index]?.fire();
+  }
+}

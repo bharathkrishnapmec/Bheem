@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { balance } from '@/config/balance';
 import { PAL } from '@/config/palette';
 import { STR } from '@/config/strings';
+import { GameEvents } from '@/core/GameEvents';
 import { GameStore } from '@/core/GameStore';
 import { addRally } from '@/logic/summon';
 import { chestCoins } from '@/logic/loot';
@@ -146,6 +147,7 @@ export class Chest implements Interactable {
     const w = this.world;
     this.opened = true;
     w.progress.chests.add(this.id);
+    GameEvents.emit('chest:opened', { x: this.x, y: this.y });
     this.sprite.play('chest:open');
     AudioManager.play('chest');
     w.fx.embers(this.x, this.y - 20, 16);

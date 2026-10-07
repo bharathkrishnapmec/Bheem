@@ -119,7 +119,7 @@ export abstract class Enemy extends Actor {
   protected abstract think(dt: number): void;
 
   // ---------------------------------------------------------------- helpers
-  protected releaseToken(): void {
+  releaseToken(): void {
     this.world.tokens.release(this.uid);
   }
 

@@ -21,7 +21,9 @@ export interface InputState {
   pausePressed: boolean;
   /** Aim direction in radians, or null when no explicit aim (use facing). */
   aimAngle: number | null;
-  aimSource: 'mouse' | 'stick' | 'none';
+  aimSource: 'mouse' | 'stick' | 'touch' | 'none';
+  /** Touch drag-aim strength 0..1 (Thunderclap distance). */
+  aimDist: number;
   aimWorldX: number;
   aimWorldY: number;
   // menu navigation
@@ -33,7 +35,10 @@ export interface InputState {
   back: boolean;
   anyPressed: boolean;
   anyHeld: boolean;
-  device: 'kb' | 'pad';
+  device: 'kb' | 'pad' | 'touch';
+  toolboxPressed: boolean;
+  resetPressed: boolean;
+  bossSelectPressed: boolean;
 }
 
 export function emptyInput(): InputState {
@@ -57,6 +62,7 @@ export function emptyInput(): InputState {
     pausePressed: false,
     aimAngle: null,
     aimSource: 'none',
+    aimDist: 0,
     aimWorldX: 0,
     aimWorldY: 0,
     menuUp: false,
@@ -68,5 +74,8 @@ export function emptyInput(): InputState {
     anyPressed: false,
     anyHeld: false,
     device: 'kb',
+    toolboxPressed: false,
+    resetPressed: false,
+    bossSelectPressed: false,
   };
 }

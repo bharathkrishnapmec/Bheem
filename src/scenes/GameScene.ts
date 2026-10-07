@@ -1,9 +1,19 @@
 import Phaser from 'phaser';
+import type { EnemyType } from '@/core/types';
+import { Quality } from '@/platform/Quality';
+import { FpsMonitor } from '@/core/FpsMonitor';
+import { TouchControls } from '@/ui/touch/TouchControls';
 import { BG_COLOR, GAME_H, GAME_W } from '@/config/gameConfig';
 import { balance } from '@/config/balance';
 import { PAL } from '@/config/palette';
 import { STR } from '@/config/strings';
-import { GameEvents } from '@/core/GameEvents';
+import { GameEvents, type GameEventMap } from '@/core/GameEvents';
+import { ScoreSystem } from '@/systems/ScoreSystem';
+import { GameContext, type CreativeStart } from '@/modes/creative/GameContext';
+import { CreativeController, FULL_SQUAD } from '@/modes/creative/CreativeController';
+import { CreativeStore } from '@/modes/creative/CreativeStore';
+import { bossById, phaseStartHp } from '@/modes/creative/bossRegistry';
+import type { Actor } from '@/entities/Actor';
 import { GameStore } from '@/core/GameStore';
 import { RNG } from '@/core/RNG';
 import { SaveManager } from '@/core/SaveManager';
@@ -12,7 +22,7 @@ import type { DistrictId, Faction, KillType } from '@/core/types';
 import { coinLossOnDeath } from '@/logic/damage';
 import { rollDrops } from '@/logic/loot';
 import { addRally, rallyForKill } from '@/logic/summon';
-import { loadVillage } from '@/level/LevelLoader';
+import { loadCreativeArena, loadVillage } from '@/level/LevelLoader';
 import { LevelGeometry } from '@/level/geometry';
 import type { LevelData } from '@/level/levelSchema';
 import { AudioManager } from '@/audio/AudioManager';
@@ -23,7 +33,6 @@ import { FX } from '@/fx/FX';
 import { CameraDirector } from '@/fx/CameraDirector';
 import { DeathFX } from '@/fx/DeathFX';
 import { pxText } from '@/ui/text';
-import type { Actor } from '@/entities/Actor';
 import { Player } from '@/entities/player/Player';
 import type { Enemy } from '@/entities/enemies/Enemy';
 import type { Ally } from '@/entities/allies/Ally';
@@ -80,7 +89,7 @@ class GameWorld implements World {
     return out;
   }
   reduced(): boolean {
-    return SaveManager.settings.reducedEffects;
+    return Quality.reduced();
   }
   inCombat(): boolean {
     return [...this.enemies].some((e) => e.isAlive() && e.aggro) || !!this.boss?.isAlive();
@@ -114,6 +123,13 @@ export class GameScene extends Phaser.Scene {
   private rain: { x: number; y: number; l: number }[] = [];
   private shrines: Shrine[] = [];
   private bossGate: Gate | null = null;
+  creativeCtl: CreativeController | null = null;
+  private miniBoss: Actor | null = null;
+  private pendingResult: Record<string, unknown> | null = null;
+  private resultAt = 0;
+  /** Simulated ms since the scene's first frame (Creative fight-start latency). */
+  private simMs = 0;
+  private fightStartMs = -1;
   private bossStage: BossStage = 'none';
   private checkpoint = { id: '', x: 0, y: 0 };
   private holdT = 0;
@@ -130,8 +146,13 @@ export class GameScene extends Phaser.Scene {
     super('Game');
   }
 
-  create(data: { continue?: boolean }): void {
-    const res = loadVillage();
+  create(data: { continue?: boolean; creative?: CreativeStart }): void {
+    const creative = !!data.creative;
+    if (data.creative) GameContext.enterCreative(data.creative);
+    else GameContext.enterStory();
+    this.simMs = 0;
+    this.fightStartMs = -1;
+    const res = creative ? loadCreativeArena() : loadVillage();
     if (!res.level) {
       pxText(this, GAME_W / 2, GAME_H / 2, `${STR.errors.level}\n${res.error ?? ''}`, 2, PAL.danger).setOrigin(0.5);
       return;
@@ -141,16 +162,17 @@ export class GameScene extends Phaser.Scene {
     const w = (this.w = new GameWorld(this, this));
     w.level = level;
     w.geo = new LevelGeometry(level.solids, level.oneWays);
-    const prog = data.continue ? SaveManager.get().progress : undefined;
+    const prog = !creative && data.continue ? SaveManager.get().progress : undefined;
     const totalCaptives = level.districts.reduce((n, d) => n + d.captives.length, 0);
     GameStore.reset({
       coins: prog?.coins ?? 0,
-      upgrades: prog ? { ...prog.upgrades } : undefined,
-      rescued: prog?.rescued.length ?? 0,
-      totalCaptives,
+      upgrades: creative ? CreativeController.loadout().upgrades : prog ? { ...prog.upgrades } : undefined,
+      rescued: creative ? FULL_SQUAD : (prog?.rescued.length ?? 0),
+      totalCaptives: creative ? FULL_SQUAD : totalCaptives,
       deaths: prog?.deaths ?? 0,
       playtimeMs: prog?.playtimeMs ?? 0,
       kills: prog?.kills ?? 0,
+      score: prog?.score ?? 0,
       checkpointId: prog?.checkpointId ?? '',
       summonCost: balance.rally.summonCost,
     });
@@ -185,13 +207,14 @@ export class GameScene extends Phaser.Scene {
     w.summon = new SummonSystem(w);
 
     // checkpoint / start
-    const shrineDefs = [...level.districts.map((d) => ({ id: `shrine_${d.id}`, ...d.shrine })), { id: 'shrine_boss', ...level.bossArena.shrine }];
+    const shrineDefs = creative ? [] : [...level.districts.map((d) => ({ id: `shrine_${d.id}`, ...d.shrine })), { id: 'shrine_boss', ...level.bossArena.shrine }];
     const cp = shrineDefs.find((s) => s.id === prog?.checkpointId);
     this.checkpoint = cp ? { id: cp.id, x: cp.x + 40, y: cp.y } : { id: '', x: level.playerStart.x, y: level.playerStart.y };
     w.progress.checkpointId = this.checkpoint.id;
     w.player = new Player(w, this.checkpoint.x, this.checkpoint.y - 1);
     w.player.applyUpgrades(GameStore.state.upgrades, true);
     w.groundGroup.add(w.player);
+    if (creative) GameStore.setRally(GameStore.state.maxRally);
 
     w.districts = new DistrictManager(w, liberated);
     w.districts.onLiberated = () => this.updateLighting();
@@ -211,7 +234,7 @@ export class GameScene extends Phaser.Scene {
       });
     }
     const ba = level.bossArena;
-    this.bossGate = new Gate(w, 'gate_boss', ba.entryGate.x, ba.entryGate.y, ba.entryGate.h, false);
+    if (!creative) this.bossGate = new Gate(w, 'gate_boss', ba.entryGate.x, ba.entryGate.y, ba.entryGate.h, false);
 
     this.physics.add.collider(w.groundGroup, w.solidGroup);
     this.physics.add.collider(w.groundGroup, oneWay, undefined, (a, p) => this.oneWayCheck(a as Actor, p as Phaser.Physics.Arcade.Image), this);
@@ -238,17 +261,35 @@ export class GameScene extends Phaser.Scene {
     GameStore.markAll();
     AudioManager.setMusic('explore');
     this.cameras.main.fadeIn(500, 0, 0, 0);
-    if (!prog) this.time.delayedCall(300, () => GameEvents.emit('intro:card', { title: STR.intro.title, subtitle: STR.intro.subtitle, durationMs: 2600 }));
+    if (!prog && !creative) this.time.delayedCall(300, () => GameEvents.emit('intro:card', { title: STR.intro.title, subtitle: STR.intro.subtitle, durationMs: 2600 }));
 
     const onDied = () => this.onPlayerDied();
     const onRetry = (i: { type: string }) => {
-      if (i.type === 'retry') this.retry();
+      if (i.type === 'retry' || i.type === 'restart') this.retry();
     };
+    const onBackground = () => this.openPause();
+    TouchControls.setPlaying(true, creative);
     GameEvents.on('player:died', onDied);
     GameEvents.on('ui:intent', onRetry);
+    GameEvents.on('app:background', onBackground);
+    const score = new ScoreSystem(() => ({ x: this.w.player.x, y: this.w.player.y - 70 }), !creative);
+    this.creativeCtl = creative ? new CreativeController(w, level.playerStart) : null;
+    if (creative) TimeController.setBaseScale(GameContext.slowMo);
+    const onPhase = () => this.updateLighting();
+    GameEvents.on('boss:phase', onPhase);
+    if (data.creative?.kind === 'boss') this.time.delayedCall(60, () => this.startCreativeBoss());
+    const onScore = (p: GameEventMap['score:changed']) => this.scorePopup(p);
+    GameEvents.on('score:changed', onScore);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       GameEvents.off('player:died', onDied);
       GameEvents.off('ui:intent', onRetry);
+      GameEvents.off('app:background', onBackground);
+      score.destroy();
+      GameEvents.off('boss:phase', onPhase);
+      this.creativeCtl?.destroy();
+      this.creativeCtl = null;
+      GameEvents.off('score:changed', onScore);
+      TouchControls.setPlaying(false);
       TimeController.clear();
       TimeController.bind(null);
       this.scene.stop('UI');
@@ -318,7 +359,7 @@ export class GameScene extends Phaser.Scene {
     const d = this.w.districts?.current();
     let preset = L.occupied;
     if (this.bossStage === 'fight' && this.w.boss?.phase === 3) preset = L.bossP3;
-    else if (d && this.w.districts.isLiberated(d.id)) preset = L.liberated;
+    else if (GameContext.creative || (d && this.w.districts.isLiberated(d.id))) preset = L.liberated;
     this.lightTarget = { color: parseInt(preset.tint.replace('#', ''), 16), alpha: preset.alpha };
     if (instant) this.light.setFillStyle(this.lightTarget.color, this.lightTarget.alpha);
   }
@@ -339,6 +380,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   save(): void {
+    if (GameContext.creative) return;
     const w = this.w;
     const s = GameStore.state;
     const districtStates = {} as Record<DistrictId, 'occupied' | 'liberated'>;
@@ -354,6 +396,7 @@ export class GameScene extends Phaser.Scene {
       deaths: s.deaths,
       playtimeMs: s.playtimeMs,
       kills: s.kills,
+      score: s.score,
     });
   }
 
@@ -386,6 +429,17 @@ export class GameScene extends Phaser.Scene {
     this.dying = true;
     const w = this.w;
     AudioManager.play('playerDeath');
+    if (this.creativeCtl) {
+      GameEvents.emit('fx:desaturate', { amount: 1, ms: 600 });
+      this.time.delayedCall(900, () => {
+        if (!this.dying) return;
+        this.dying = false;
+        this.creativeCtl?.restorePlayer();
+        GameEvents.emit('fx:desaturate', { amount: 0, ms: 200 });
+        w.toast(STR.creative.died, 'cyan');
+      });
+      return;
+    }
     AudioManager.setCombat(false);
     TimeController.slowMo(0.3, 900, 40);
     w.cam.zoomTo(1.25, 600);
@@ -401,12 +455,22 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private retry(): void {
-    this.scene.stop('GameOver');
-    this.scene.start('Game', { continue: true });
+  /** Opens the pause menu if the game is in a pausable state. */
+  openPause(): boolean {
+    if (this.dying || this.bossStage === 'dead' || !this.scene.isActive()) return false;
+    this.scene.pause();
+    this.scene.launch('Pause');
+    GameEvents.emit('game:paused', { paused: true });
+    return true;
   }
 
-  private startBoss(): void {
+  private retry(): void {
+    this.scene.stop('Pause');
+    this.scene.stop('GameOver');
+    this.scene.start('Game', GameContext.creative && GameContext.start ? { creative: GameContext.start } : { continue: true });
+  }
+
+  private startBoss(opts: { skipIntro?: boolean; phase?: 1 | 2 | 3 } = {}): void {
     const w = this.w;
     const ba = w.level.bossArena;
     this.bossStage = 'intro';
@@ -417,6 +481,10 @@ export class GameScene extends Phaser.Scene {
     const boss = (w.boss = new Kaalasura(w, ba.bossSpawn.x, ba.bossSpawn.y - 1));
     w.groundGroup.add(boss);
     boss.onDefeated = () => this.bossDefeated();
+    if (opts.skipIntro) {
+      this.time.delayedCall(250, () => this.beginBossFight(boss, opts.phase ?? 1));
+      return;
+    }
     w.player.lock(true);
     this.cinematic = true;
     w.cam.focusOn(boss.x, boss.cy, 1.15, 500);
@@ -425,13 +493,140 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(700, () => w.cam.shake(8, 900));
     this.time.delayedCall(balance.boss.introMs, () => {
       w.cam.unfocus(400);
-      w.player.lock(false);
-      this.cinematic = false;
-      this.bossStage = 'fight';
-      boss.beginFight();
-      this.updateLighting();
+      this.beginBossFight(boss, opts.phase ?? 1);
     });
-    GameEvents.on('boss:phase', () => this.updateLighting());
+  }
+
+  private beginBossFight(boss: Kaalasura, phase: 1 | 2 | 3): void {
+    if (this.w.boss !== boss || !boss.active) return;
+    this.w.player.lock(false);
+    this.cinematic = false;
+    this.bossStage = 'fight';
+    boss.beginFight();
+    if (phase > 1) {
+      boss.hp = phaseStartHp(boss.maxHp, phase);
+      boss.phase = phase;
+      GameStore.setBoss(boss.hp, boss.maxHp, phase);
+      GameEvents.emit('boss:phase', { phase });
+    }
+    if (this.creativeCtl) {
+      if (GameContext.start?.allies === 'auto') this.creativeCtl.summonSquad();
+      this.creativeCtl.fighting = true;
+      this.fightStartMs = this.simMs;
+    }
+    this.updateLighting();
+  }
+
+  private startCreativeBoss(): void {
+    const cs = GameContext.start;
+    const ctl = this.creativeCtl;
+    if (!cs || cs.kind !== 'boss' || !ctl) return;
+    const entry = bossById(cs.bossId);
+    ctl.resetStats();
+    if (entry.id === 'kaalasura') return this.startBoss({ skipIntro: cs.skipIntro !== false, phase: cs.phase ?? 1 });
+    const ba = this.w.level.bossArena;
+    const fight = entry.factory(this.w, ba.bossSpawn.x, ba.bossSpawn.y - 1);
+    this.miniBoss = fight.actor;
+    this.bossStage = 'fight';
+    AudioManager.setMusic('boss');
+    GameEvents.emit('boss:spawned', { name: entry.name, title: entry.title, max: fight.actor.maxHp });
+    GameStore.setBoss(fight.actor.hp, fight.actor.maxHp, 1);
+    if (cs.allies === 'auto') ctl.summonSquad();
+    ctl.fighting = true;
+    this.fightStartMs = this.simMs;
+  }
+
+  private updateMiniBoss(): void {
+    const m = this.miniBoss;
+    if (!m || this.bossStage !== 'fight') return;
+    GameStore.setBoss(Math.max(0, m.hp), m.maxHp, 1);
+    if (m.isAlive()) return;
+    this.miniBoss = null;
+    this.bossStage = 'dead';
+    GameEvents.emit('boss:died', {});
+    this.finishCreativeFight(1200);
+  }
+
+  /** Records the Creative fight and shows the result panel after the (skippable) death beat. */
+  private finishCreativeFight(delayMs: number): void {
+    const ctl = this.creativeCtl;
+    if (!ctl) return;
+    ctl.fighting = false;
+    const bossId = bossById(GameContext.start?.bossId).id;
+    const stats = { ...ctl.stats };
+    const newBest = CreativeStore.recordTime(bossId, stats.timeMs);
+    this.pendingResult = { ...stats, bossId, newBest };
+    this.resultAt = this.time.now;
+    this.time.delayedCall(delayMs, () => this.showCreativeResult());
+  }
+
+  private skipCreativeResult(): void {
+    const w = this.w;
+    this.time.removeAllEvents();
+    TimeController.clear();
+    TimeController.setBaseScale(GameContext.slowMo);
+    if (w.boss?.active) {
+      if (w.boss.body.enable) GameEvents.emit('boss:died', {});
+      w.boss.destroy();
+      w.boss = null;
+    }
+    w.cam.unfocus(0);
+    this.showCreativeResult();
+  }
+
+  private showCreativeResult(): void {
+    const r = this.pendingResult;
+    if (!r) return;
+    this.pendingResult = null;
+    this.cinematic = false;
+    this.w.player.lock(false);
+    this.scene.pause();
+    this.scene.launch('CreativeResult', r);
+  }
+
+  /** Creative quick reset (< 500 ms, synchronous): fresh hero, empty field, boss back at the chosen phase. */
+  creativeReset(): void {
+    const ctl = this.creativeCtl;
+    if (!ctl) return;
+    const w = this.w;
+    this.time.removeAllEvents();
+    this.pendingResult = null;
+    TimeController.clear();
+    TimeController.setBaseScale(GameContext.slowMo);
+    if (w.boss) {
+      w.boss.destroy();
+      w.boss = null;
+    }
+    this.miniBoss = null;
+    ctl.clearAll();
+    if (this.bossStage !== 'none') GameEvents.emit('boss:died', {});
+    this.bossStage = 'none';
+    this.dying = false;
+    this.cinematic = false;
+    w.player.lock(false);
+    ctl.restorePlayer();
+    ctl.resetStats();
+    w.cam.unfocus(0);
+    w.cam.snap();
+    GameEvents.emit('fx:desaturate', { amount: 0, ms: 100 });
+    this.updateLighting(true);
+    if (GameContext.start?.kind === 'boss') this.startCreativeBoss();
+    else AudioManager.setMusic('explore');
+    w.toast(STR.creative.resetDone, 'cyan');
+  }
+
+  openToolbox(): boolean {
+    if (this.dying || this.bossStage === 'dead' || !this.scene.isActive()) return false;
+    this.scene.pause();
+    this.scene.launch('Toolbox');
+    return true;
+  }
+
+  openBossSelect(): void {
+    TouchControls.setPlaying(false);
+    this.scene.stop('UI');
+    this.scene.stop('Pause');
+    this.scene.start('BossSelect');
   }
 
   private bossDefeated(): void {
@@ -467,6 +662,7 @@ export class GameScene extends Phaser.Scene {
       this.lightTarget = { color: parseInt(w.level.lighting.liberated.tint.replace('#', ''), 16), alpha: w.level.lighting.liberated.alpha };
       this.time.delayedCall(1900, () => boss.destroy());
     });
+    if (this.creativeCtl) return this.finishCreativeFight(3800);
     this.time.delayedCall(4400, () => {
       w.cam.unfocus(800);
       w.player.anim('cheer');
@@ -481,29 +677,37 @@ export class GameScene extends Phaser.Scene {
       this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
         const s = GameStore.state;
         this.scene.stop('UI');
-        this.scene.start('Victory', { timeMs: s.playtimeMs, deaths: s.deaths, rescued: s.rescued, total: s.totalCaptives, coins: s.coins, kills: s.kills });
+        this.scene.start('Victory', { timeMs: s.playtimeMs, deaths: s.deaths, rescued: s.rescued, total: s.totalCaptives, coins: s.coins, kills: s.kills, score: s.score });
       });
     });
   }
 
   private reducedFx(): boolean {
-    return SaveManager.settings.reducedEffects;
+    return Quality.reduced();
   }
+
+  private fpsMon = new FpsMonitor();
 
   override update(_t: number, delta: number): void {
     const w = this.w;
     if (!w?.player) return;
     const realDt = Math.min(delta, 50);
+    this.simMs += delta;
+    if (this.fpsMon.update(delta) && !SaveManager.settings.reducedEffects) {
+      SaveManager.updateSettings({ reducedEffects: true });
+      w.toast(STR.settings.lowFpsToast, 'cyan');
+    }
     const scale = TimeController.update();
     const dt = realDt * scale;
     w.now += dt;
     this.inp.update();
     const st = this.inp.state;
-    if (st.pausePressed && !this.dying && this.bossStage !== 'dead') {
-      this.scene.pause();
-      this.scene.launch('Pause');
-      GameEvents.emit('game:paused', { paused: true });
-      return;
+    if (st.pausePressed && this.openPause()) return;
+    if (this.creativeCtl) {
+      if (this.pendingResult && this.time.now - this.resultAt > 400 && (st.attackPressed || st.confirm || st.jumpPressed)) return this.skipCreativeResult();
+      if (st.resetPressed) this.creativeReset();
+      if (st.toolboxPressed && this.openToolbox()) return;
+      if (st.bossSelectPressed) return this.openBossSelect();
     }
     const p = w.player;
     p.in = this.cinematic || this.dying ? emptyInput() : st;
@@ -527,6 +731,8 @@ export class GameScene extends Phaser.Scene {
     w.summon.update(dt);
     for (const b of w.banners) b.update(dt);
     w.fx.update(dt);
+    this.creativeCtl?.update(dt, realDt);
+    this.updateMiniBoss();
     this.multi.t -= realDt;
 
     // hazards & pits
@@ -542,7 +748,7 @@ export class GameScene extends Phaser.Scene {
           if (r.applied) GameEvents.emit('player:hazard', {});
         }
     }
-    for (const e of w.enemies) if (e.isAlive() && e.y > w.level.height + 100) e.hp = 0;
+    for (const e of w.enemies) if (e.isAlive() && e.y > w.level.height + 100) w.combat.hit(e, { amount: 9999, kind: 'contact', faction: 'neutral', dirX: 0, knockback: 0, poise: 0, ignoreIFrames: true, noHitStop: true });
 
     const ba = w.level.bossArena;
     if (this.bossStage === 'none' && p.x > ba.trigger.x && !p.dead) this.startBoss();
@@ -656,11 +862,43 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  private scorePopup(p: GameEventMap['score:changed']): void {
+    if (p.x === undefined || p.y === undefined) return;
+    const t = pxText(this, p.x, p.y, p.label ? `${p.label} +${p.delta}` : `+${p.delta}`, 1, PAL.cleanseGold).setOrigin(0.5).setDepth(210);
+    this.tweens.add({ targets: t, y: p.y - 36, alpha: 0, delay: 250, duration: 650, onComplete: () => t.destroy() });
+  }
+
   private exposeTestHooks(): void {
     const w = this.w;
     (window as unknown as { __BHEEM__: unknown }).__BHEEM__ = {
       scene: 'Game',
-      player: () => ({ x: w.player.x, y: w.player.y, hp: w.player.hp, st: w.player.st, weapon: w.player.weapon }),
+      player: () => ({ x: w.player.x, y: w.player.y, hp: w.player.hp, st: w.player.st, weapon: w.player.weapon, ammo: w.player.ammo, prana: w.player.prana }),
+      spawn: (type: EnemyType, dx: number) => (w.spawner.spawnEnemy(type, w.player.x + dx, w.player.y, { aggro: true, required: false }) ? true : false),
+      enemyHp: () => [...w.enemies].filter((e) => e.isAlive()).map((e) => e.hp),
+      enemyInfo: () => [...w.enemies].filter((e) => e.isAlive()).map((e) => ({ type: e.type, x: Math.round(e.x), y: Math.round(e.y), hp: e.hp, ai: e.ai, aggro: e.aggro, target: e.target === w.player })),
+      score: () => GameStore.state.score,
+      creative: () => ({
+        mode: GameContext.mode,
+        stats: this.creativeCtl ? { ...this.creativeCtl.stats } : null,
+        queue: this.creativeCtl?.queue.length ?? 0,
+        alive: [...w.enemies].filter((e) => e.isAlive()).length,
+        bossStage: this.bossStage,
+        fightStartMs: this.fightStartMs,
+        rally: GameStore.state.rally,
+        upgrades: { ...GameStore.state.upgrades },
+      }),
+      creativeReset: () => this.creativeReset(),
+      clearLoot: () => w.loot.clear(),
+      tool: (name: 'spawn' | 'clear' | 'summon', arg?: string) => {
+        const c = this.creativeCtl;
+        if (!c) return false;
+        if (name === 'spawn') c.spawn((arg ?? 'raider') as EnemyType | 'dummy');
+        else if (name === 'clear') c.clearAll(this.miniBoss);
+        else c.summonSquad();
+        return true;
+      },
+      mod: (k: keyof typeof GameContext.modifiers, v: boolean) => (GameContext.modifiers[k] = v),
+      tokens: () => ({ inUse: w.tokens.inUse, capacity: w.tokens.capacity }),
       enemies: () => [...w.enemies].filter((e) => e.isAlive()).length,
       district: () => w.districts.current()?.id ?? null,
       boss: () => (w.boss ? { hp: w.boss.hp, phase: w.boss.phase } : null),

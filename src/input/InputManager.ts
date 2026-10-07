@@ -4,6 +4,7 @@ import { DEFAULT_PAD_BINDINGS, PAD } from '@/config/controls';
 import { SaveManager } from '@/core/SaveManager';
 import type { ActionId } from '@/core/types';
 import { emptyInput, type InputState } from './InputState';
+import { touchInput, type TouchControl } from './TouchInput';
 
 type Held = Record<ActionId, boolean>;
 const ACTIONS: ActionId[] = ['left', 'right', 'jump', 'crouch', 'dash', 'attack', 'weapon1', 'weapon2', 'weapon3', 'cycleNext', 'cyclePrev', 'summon', 'interact', 'pause'];
@@ -24,6 +25,8 @@ export class InputManager {
   private anyKeyDown = false;
   /** Keys pressed since the last poll, so taps shorter than a frame still register. */
   private latched = new Set<string>();
+  /** Non-repeat keydowns this frame; Phaser clears _justDown on keyup, so fast taps would otherwise be lost. */
+  private edges = new Set<string>();
   private disposed = false;
   enabled = true;
   /** Optional world-space origin used to compute mouse aim angle (the hero). */
@@ -42,15 +45,19 @@ export class InputManager {
   }
 
   private onDown(p: Phaser.Input.Pointer): void {
+    if (p.wasTouch) return;
+    touchInput.active = false;
     if (p.rightButtonDown()) this.mouseRight = true;
     else this.mouseDown = true;
     this.state.device = 'kb';
   }
   private onUp(p: Phaser.Input.Pointer): void {
+    if (p.wasTouch) return;
     if (p.rightButtonReleased()) this.mouseRight = false;
     else this.mouseDown = false;
   }
-  private onMove(): void {
+  private onMove(p: Phaser.Input.Pointer): void {
+    if (p.wasTouch) return;
     this.mouseMoved = true;
   }
   private onWheel(_p: unknown, _o: unknown, _dx: number, dy: number): void {
@@ -58,7 +65,13 @@ export class InputManager {
   }
   private onAnyKey(ev?: KeyboardEvent): void {
     this.anyKeyDown = true;
-    if (ev) for (const [n, k] of this.keys) if (k.keyCode === ev.keyCode) this.latched.add(n);
+    touchInput.active = false;
+    if (ev)
+      for (const [n, k] of this.keys)
+        if (k.keyCode === ev.keyCode) {
+          this.latched.add(n);
+          if (!ev.repeat) this.edges.add(n);
+        }
     this.state.device = 'kb';
   }
 
@@ -66,7 +79,7 @@ export class InputManager {
     const kb = this.scene.input.keyboard;
     if (!kb) return;
     const b = SaveManager.settings.bindings;
-    const names = new Set<string>(['ENTER', 'ESC', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'W', 'A', 'S', 'D', 'SPACE', 'BACKSPACE', 'F3']);
+    const names = new Set<string>(['ENTER', 'ESC', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'W', 'A', 'S', 'D', 'SPACE', 'BACKSPACE', 'F3', 'TAB', 'B']);
     for (const a of ACTIONS) for (const n of b[a] ?? []) if (!n.startsWith('MOUSE') && !n.startsWith('WHEEL')) names.add(n);
     for (const n of names) {
       if (this.keys.has(n)) continue;
@@ -82,13 +95,22 @@ export class InputManager {
 
   keyJustDown(name: string): boolean {
     const k = this.keys.get(name);
-    return k ? Phaser.Input.Keyboard.JustDown(k) : false;
+    const jd = k ? Phaser.Input.Keyboard.JustDown(k) : false;
+    return this.edges.delete(name) || jd;
   }
 
   private pad(): Phaser.Input.Gamepad.Gamepad | null {
     const gp = this.scene.input.gamepad;
     if (!gp || gp.total === 0) return null;
     return gp.getPad(0) ?? gp.pad1 ?? null;
+  }
+
+  private prevSelect = false;
+  private padSelectEdge(p: Phaser.Input.Gamepad.Gamepad | null): boolean {
+    const on = this.padBtn(p, PAD.SELECT);
+    const edge = on && !this.prevSelect;
+    this.prevSelect = on;
+    return edge;
   }
 
   private padBtn(p: Phaser.Input.Gamepad.Gamepad | null, i: number): boolean {
@@ -117,6 +139,26 @@ export class InputManager {
     this.wheel = 0;
     const held = {} as Held;
     for (const a of ACTIONS) held[a] = this.enabled && this.actionHeld(a, pad, wheelDir);
+    const t = touchInput;
+    const tp = (c: TouchControl) => this.enabled && (t.takePressed(c) || t.held(c));
+    const stick = this.enabled ? t.stick() : null;
+    if (t.active) {
+      held.jump ||= tp('jump');
+      held.dash ||= tp('dash');
+      held.attack ||= tp('attack');
+      held.summon ||= tp('summon');
+      held.interact ||= tp('interact');
+      held.pause ||= tp('pause');
+      held.weapon1 ||= tp('sword');
+      held.weapon2 ||= tp('bow');
+      held.weapon3 ||= tp('staff');
+      held.cycleNext ||= tp('cycle');
+      held.crouch ||= !!stick && stick.y > 0.5 && Math.abs(stick.y) > Math.abs(stick.x) * 0.6;
+      s.device = 'touch';
+    }
+    s.toolboxPressed = (this.enabled && t.takePressed('toolbox')) || this.keyJustDown('TAB') || this.padSelectEdge(pad);
+    s.resetPressed = (this.enabled && t.takePressed('reset')) || this.keyJustDown('BACKSPACE');
+    s.bossSelectPressed = (this.enabled && t.takePressed('bossSelect')) || this.keyJustDown('B');
     const pressed = (a: ActionId) => held[a] && !this.prev[a];
     const released = (a: ActionId) => !held[a] && this.prev[a];
 
@@ -136,11 +178,15 @@ export class InputManager {
         aimX = rx;
         aimY = ry;
       }
-      if (padX || padY || pad.buttons.some((b) => b.pressed)) s.device = 'pad';
+      if (padX || padY || pad.buttons.some((b) => b.pressed)) {
+        s.device = 'pad';
+        touchInput.active = false;
+      }
     }
     let mx = (held.right ? 1 : 0) - (held.left ? 1 : 0);
     if (this.padBtn(pad, PAD.DPAD_LEFT) && !DEFAULT_PAD_BINDINGS.weapon1?.includes(PAD.DPAD_LEFT)) mx = -1;
     if (mx === 0 && padX) mx = padX;
+    if (mx === 0 && stick) mx = stick.x;
     s.moveX = this.enabled ? mx : 0;
     const upHeld = this.enabled && (this.key('W') || this.key('UP') || padY < -0.5);
     const downHeld = this.enabled && (held.crouch || padY > 0.5);
@@ -164,7 +210,13 @@ export class InputManager {
     // Aim
     const p = this.scene.input.activePointer;
     const cam = this.scene.cameras.main;
-    if (aimX || aimY) {
+    const ta = t.active ? t.aim() : null;
+    s.aimDist = 0;
+    if (ta) {
+      s.aimAngle = ta.angle;
+      s.aimSource = ta.angle === null ? 'none' : 'touch';
+      s.aimDist = ta.frac;
+    } else if (aimX || aimY) {
       s.aimAngle = Math.atan2(aimY, aimX);
       s.aimSource = 'stick';
     } else if (s.device === 'kb' && this.aimOrigin && (this.mouseMoved || this.mouseDown)) {
@@ -199,6 +251,7 @@ export class InputManager {
     this.prevMenu = m;
     this.anyKeyDown = false;
     this.latched.clear();
+    this.edges.clear();
     this.mouseMoved = false;
     this.prev = held;
     return s;
@@ -207,6 +260,7 @@ export class InputManager {
   /** Clear edge state (e.g. after unpausing) so held buttons don't retrigger. */
   flush(): void {
     this.latched.clear();
+    this.edges.clear();
     const pad = this.pad();
     for (const a of ACTIONS) this.prev[a] = this.actionHeld(a, pad, 0);
   }
