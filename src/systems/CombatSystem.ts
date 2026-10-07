@@ -34,6 +34,8 @@ export interface HitInfo {
   x?: number;
   y?: number;
   ignoreIFrames?: boolean;
+  /** Guard Gauge poise (v3 §B3); derived from kind when omitted. */
+  guardPoise?: number;
   /** Forces the kill type (environmental lava / void deaths). */
   killAs?: KillType;
 }
@@ -58,7 +60,7 @@ export class CombatSystem {
     if (target.invulnMs > 0 && !h.ignoreIFrames) return MISS;
     if (target === this.world.player && GameContext.modifiers.godMode) return MISS;
     const mult = (h.multiplier ?? 1) * target.damageTakenMul(h);
-    const dmg = computeFinalDamage(h.amount, mult, target.armor);
+    const dmg = target.limitDamage(computeFinalDamage(h.amount, mult, target.armor));
     target.hp = Math.max(0, target.hp - dmg);
     target.lastAttacker = h.source ?? null;
     const heroSide = h.faction !== 'enemy';

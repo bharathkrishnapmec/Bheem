@@ -62,14 +62,14 @@ test('creative: Toolbox + Boss Select by keyboard, phase-2 Kaalasura, result pan
   // Game-clock latency from scene start to the fight going live (brief: < 1 s).
   expect(await H<number>(page, 'h.creative().fightStartMs')).toBeLessThan(1000);
   expect(await H<number>(page, 'h.boss().phase')).toBe(2);
-  for (let i = 0; i < 80 && ((await H<{ hp: number } | null>(page, 'h.boss()'))?.hp ?? 0) > 0; i++) {
-    await H(page, 'h.hitBoss(60)');
-    await page.waitForTimeout(100);
+  for (let i = 0; i < 400 && ((await H<{ hp: number } | null>(page, 'h.boss()'))?.hp ?? 0) > 0; i++) {
+    await H(page, 'h.hitBoss(150)');
+    await page.waitForTimeout(60);
   }
   await expect.poll(() => scene(page), { timeout: 15_000 }).toBe('CreativeResult');
   await page.waitForTimeout(200);
   await page.keyboard.press('Enter');
   await expect.poll(() => H<string>(page, 'h.creative().bossStage'), { timeout: 5_000 }).toBe('fight');
-  expect((await H<{ hp: number }>(page, 'h.boss()')).hp).toBe(594);
+  expect((await H<{ hp: number }>(page, 'h.boss()')).hp).toBe(2475);
   expect(errors).toEqual([]);
 });

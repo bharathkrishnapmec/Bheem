@@ -54,6 +54,8 @@ export class UIScene extends Phaser.Scene {
   private promptOn = false;
   private bossOn = false;
   private bossLag = 1;
+  private guardSnap: { guard: number; max: number; broken: boolean; recoveryUntil?: number } | null = null;
+  private bossTicks: readonly number[] = balance.bosses.global.thresholds;
   private bannerInfo: { hp: number; max: number; t: number } | null = null;
   private summonCd = 0;
   private dashCd = 0;
@@ -144,8 +146,11 @@ export class UIScene extends Phaser.Scene {
       this.prompt.setVisible(false);
       this.promptOn = false;
     });
+    on('boss:guard', (g) => (this.guardSnap = g));
     on('boss:spawned', (p) => {
       this.bossOn = true;
+      this.guardSnap = null;
+      this.bossTicks = p.phases === 2 ? [0.5] : p.phases === 1 ? [] : balance.bosses.global.thresholds;
       this.bossName.setText(`${p.name} - ${p.title ?? STR.boss.title}`).setVisible(true);
       this.districtText.setText(`${p.name.toUpperCase()}'S ARENA`);
     });
@@ -180,10 +185,16 @@ export class UIScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.offs.forEach((f) => f()));
   }
 
+  /** Toasts and the Creative style counter sit below the boss bar while it is shown. */
+  private toastTop(): number {
+    return this.bossOn ? 128 : 90;
+  }
+
   private toast(text: string, color: number): void {
-    const t = pxText(this, GAME_W / 2, 90, text, 2, color).setOrigin(0.5).setAlpha(0);
+    const top = this.toastTop();
+    const t = pxText(this, GAME_W / 2, top, text, 2, color).setOrigin(0.5).setAlpha(0);
     this.toasts.push(t);
-    this.toasts.forEach((o, i) => this.tweens.add({ targets: o, y: 90 + (this.toasts.length - 1 - i) * -0 + i * 22, duration: 150 }));
+    this.toasts.forEach((o, i) => this.tweens.add({ targets: o, y: top + i * 22, duration: 150 }));
     this.tweens.add({ targets: t, alpha: 1, duration: 150 });
     this.tweens.add({
       targets: t,
@@ -320,9 +331,20 @@ export class UIScene extends Phaser.Scene {
       g.fillStyle(PAL.outline, 1).fillRect(x - 2, y - 2, w + 4, 16);
       g.fillStyle(0x200a14, 1).fillRect(x, y, w, 12);
       g.fillStyle(0xffffff, 0.7).fillRect(x, y, w * this.bossLag, 12);
-      g.fillStyle(s.bossPhase === 3 ? PAL.danger : PAL.ruinViolet, 1).fillRect(x, y, w * f, 12);
-      for (const th of balance.boss.phaseThresholds) g.fillStyle(PAL.cleanseGold, 1).fillRect(x + w * th - 1, y - 3, 2, 18);
-      this.bossName.setTint(s.bossPhase === 3 ? PAL.danger : PAL.ruinGlow);
+      g.fillStyle(s.bossPhase >= 3 ? PAL.danger : PAL.ruinViolet, 1).fillRect(x, y, w * f, 12);
+      for (const th of this.bossTicks) g.fillStyle(PAL.cleanseGold, 1).fillRect(x + w * th - 1, y - 3, 2, 18);
+      this.bossName.setTint(s.bossPhase >= 3 ? PAL.danger : PAL.ruinGlow);
+      const gs = this.guardSnap;
+      if (gs) {
+        const gy = y + 15;
+        const now = this.time.now;
+        const rec = gs.recoveryUntil !== undefined;
+        g.fillStyle(PAL.outline, 1).fillRect(x - 2, gy - 1, w + 4, 7);
+        g.fillStyle(0x0a1420, 1).fillRect(x, gy, w, 5);
+        if (gs.broken) g.fillStyle(Math.floor(now / 110) % 2 ? PAL.danger : 0xffffff, 1).fillRect(x, gy, w, 5);
+        else g.fillStyle(rec ? 0xd8e8ff : PAL.statusCyan, rec ? 0.55 + 0.3 * Math.sin(now / 110) : 1).fillRect(x, gy, w * (gs.max ? gs.guard / gs.max : 0), 5);
+        for (let i = 1; i < 4; i++) g.fillStyle(PAL.outline, 0.8).fillRect(x + (w * i) / 4, gy, 1, 5);
+      }
     }
     // --- banner hp
     if (this.bannerInfo && !this.bossOn) {
@@ -372,6 +394,7 @@ export class UIScene extends Phaser.Scene {
     this.styleT -= dt;
     if (this.styleT <= 0) this.styleN = 0;
     const st = this.styleText!;
+    st.setY(this.bossOn ? 112 : 58);
     if (this.styleN >= 3) st.setText(STR.creative.style(this.styleN)).setAlpha(Math.min(1, this.styleT / 400));
     else st.setAlpha(0);
   }

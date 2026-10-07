@@ -14,6 +14,7 @@ type Hooks = {
   warp(x: number): void;
   hitBoss(n: number): void;
   boss(): { hp: number; phase: number } | null;
+  guardHit(n: number): void;
 };
 const H = <T>(p: Page, fn: string) => p.evaluate((f) => new Function('h', `return ${f}`)((window as unknown as { __BHEEM__: Hooks }).__BHEEM__), fn) as Promise<T>;
 
@@ -81,7 +82,7 @@ test('attack tokens cap simultaneous melee attackers', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('Kaalasura walks through phases 1 → 2 → 3 at the balance thresholds', async ({ page }) => {
+test('Kaalasura walks through phases 1 → 2 → 3 at the v3 thresholds (75/50 %)', async ({ page }) => {
   test.setTimeout(150_000);
   const errors: string[] = [];
   await start(page, errors);
@@ -89,20 +90,20 @@ test('Kaalasura walks through phases 1 → 2 → 3 at the balance thresholds', a
   await H(page, 'h.warp(9000)');
   await expect.poll(async () => (await H<{ hp: number; phase: number } | null>(page, 'h.boss()'))?.phase ?? 0, { timeout: 30_000 }).toBe(1);
   const b0 = (await H<{ hp: number; phase: number }>(page, 'h.boss()'))!;
-  expect(b0.hp).toBe(900);
+  expect(b0.hp).toBe(3300);
   // chip the boss down in small hits and record the HP fraction at which each phase starts
   const seen: Record<number, number> = {};
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 500; i++) {
     const b = await H<{ hp: number; phase: number } | null>(page, 'h.boss()');
     if (!b || b.hp <= 0) break;
-    if (!(b.phase in seen)) seen[b.phase] = b.hp / 900;
+    if (!(b.phase in seen)) seen[b.phase] = b.hp / 3300;
     if (b.phase === 3) break;
-    await H(page, 'h.hitBoss(30)');
-    await page.waitForTimeout(150);
+    await H(page, 'h.hitBoss(60)');
+    await page.waitForTimeout(80);
   }
-  expect(seen[2]).toBeLessThanOrEqual(0.66);
-  expect(seen[2]).toBeGreaterThan(0.33);
-  expect(seen[3]).toBeLessThanOrEqual(0.33);
+  expect(seen[2]).toBeLessThanOrEqual(0.75);
+  expect(seen[2]).toBeGreaterThan(0.5);
+  expect(seen[3]).toBeLessThanOrEqual(0.5);
   expect(errors).toEqual([]);
 });
 

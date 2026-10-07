@@ -478,6 +478,7 @@ export class Player extends Actor {
         poise: sp.poiseDamage,
         hitStopMs: sp.hitStopMs,
         isFinisher: fin,
+        guardPoise: balance.guard.poise[fin ? 'swordFinisher' : this.atkKind === 'air' ? 'swordAir' : 'swordLight'],
         preset: fin ? 'heavy' : undefined,
       },
       this.hitSet,
@@ -700,6 +701,7 @@ export class Player extends Actor {
         dirX: Math.sign(cur.cx - from.x) || this.facing,
         knockback: 60,
         poise: S.boltPoise,
+        guardPoise: balance.guard.poise.bolt,
         status: { id: 'shocked', durationMs: S.boltShockMs },
         noHitStop: n > 0,
       });
@@ -766,6 +768,7 @@ export class Player extends Actor {
         poise: S.clapPoise,
         status: { id: 'shocked', durationMs: balance.status.shocked.clapMs },
         isClap: true,
+        guardPoise: balance.guard.poise.clap,
         preset: 'thunderclap',
         crit: true,
       });

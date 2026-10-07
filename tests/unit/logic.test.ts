@@ -9,7 +9,7 @@ import { nextDistrictState, bannerIsVulnerable } from '@/logic/district';
 import { upgradeCost, canPurchase, derivedPlayerStats } from '@/logic/economy';
 import { splitCoins, rollDrops } from '@/logic/loot';
 import { squadComposition, summonDenial, addRally, rallyForKill } from '@/logic/summon';
-import { phaseForHp, chooseBossAttack, darkRainColumns, shouldDesperation, bossDamageMultiplier } from '@/logic/boss';
+import { phaseForHp, darkRainColumns, minionWardMul } from '@/logic/boss';
 import { StatusEffectSystem, type StatusTarget } from '@/systems/StatusEffectSystem';
 import { pickTarget } from '@/systems/TargetingSystem';
 import { AttackTokenSystem } from '@/systems/AttackTokenSystem';
@@ -151,25 +151,20 @@ describe('economy & loot', () => {
 });
 
 describe('boss', () => {
-  it('phases by hp', () => {
-    expect(phaseForHp(900, 900)).toBe(1);
-    expect(phaseForHp(900 * 0.6, 900)).toBe(2);
-    expect(phaseForHp(900 * 0.2, 900)).toBe(3);
+  it('four phases at 75/50/25 %', () => {
+    expect(phaseForHp(3600, 3600)).toBe(1);
+    expect(phaseForHp(3600 * 0.7, 3600)).toBe(2);
+    expect(phaseForHp(3600 * 0.4, 3600)).toBe(3);
+    expect(phaseForHp(3600 * 0.2, 3600)).toBe(4);
+    expect(phaseForHp(400, 900, [0.5])).toBe(2);
   });
-  it('never repeats an attack and keeps a safe column', () => {
-    const r = new RNG(3);
-    let last = chooseBossAttack(1, null, r);
-    for (let i = 0; i < 50; i++) {
-      const n = chooseBossAttack(2, last, r);
-      expect(n).not.toBe(last);
-      last = n;
-    }
+  it('dark rain leaves exactly one safe column; minion ward', () => {
+    const r = new RNG(5);
     const { safe, columns } = darkRainColumns(r);
     expect(columns).not.toContain(safe);
     expect(columns.length).toBe(balance.boss.attacks.darkRain.columns - 1);
-    expect(shouldDesperation(100, 900, false)).toBe(true);
-    expect(shouldDesperation(100, 900, true)).toBe(false);
-    expect(bossDamageMultiplier(balance.boss.shieldMinions, false)).toBeLessThan(1);
+    expect(minionWardMul(balance.boss.shieldMinions)).toBeLessThan(1);
+    expect(minionWardMul(0)).toBe(1);
   });
 });
 

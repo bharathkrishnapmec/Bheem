@@ -28,8 +28,8 @@ export const bossRegistry: readonly BossEntry[] = [
     name: STR.boss.name,
     title: STR.boss.title,
     description: STR.creative.bossDesc.kaalasura,
-    hp: balance.boss.hp,
-    phases: balance.boss.phaseThresholds.length + 1,
+    hp: balance.bosses.stats.kaalasura.hp,
+    phases: balance.bosses.stats.kaalasura.phases,
     thumbnailKey: 'boss',
     arenaId: 'creative_arena',
     factory: (w, x, y) => ({ actor: new Kaalasura(w, x, y), cinematic: true }),
@@ -53,7 +53,4 @@ export const bossRegistry: readonly BossEntry[] = [
 
 export const bossById = (id: string | undefined): BossEntry => bossRegistry.find((b) => b.id === id) ?? bossRegistry[0]!;
 
-/** HP at the top of a phase band, e.g. phase 2 of [0.66, 0.33] starts at 66 %. */
-export function phaseStartHp(max: number, phase: 1 | 2 | 3, thresholds: readonly number[] = balance.boss.phaseThresholds): number {
-  return phase === 1 ? max : Math.floor(max * (thresholds[phase - 2] ?? 1));
-}
+export { phaseStartHp } from '@/logic/boss';

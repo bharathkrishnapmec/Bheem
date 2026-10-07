@@ -56,10 +56,10 @@ test('liberate all four districts, defeat Kaalasura, reach victory', async ({ pa
   }
   await h.run((hk, x) => hk.warp(x), 8950);
   await page.waitForTimeout(5000);
-  expect(await h.run((hk) => hk.boss())).toMatchObject({ hp: 900, phase: 1 });
-  for (let i = 0; i < 80; i++) {
-    await h.run((hk) => (hk.god(), hk.hitBoss(60)));
-    await page.waitForTimeout(400);
+  expect(await h.run((hk) => hk.boss())).toMatchObject({ hp: 3300, phase: 1 });
+  for (let i = 0; i < 240; i++) {
+    await h.run((hk) => (hk.god(), hk.hitBoss(250)));
+    await page.waitForTimeout(150);
     const b = await h.run((hk) => hk.boss());
     if (!b || b.hp <= 0) break;
   }

@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "boss:sim": "vite-node tools/bossSim.ts"
   },
   "dependencies": {
     "phaser": "3.90.0"

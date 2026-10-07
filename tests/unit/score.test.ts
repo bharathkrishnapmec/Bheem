@@ -10,7 +10,7 @@ describe('score (cosmetic, Story only)', () => {
   });
 
   it('uses the brief point table', () => {
-    expect([pointsForKill('imp'), pointsForKill('raider'), pointsForKill('boneArcher'), pointsForKill('mireHexer'), pointsForKill('skyCaller'), pointsForKill('brute'), pointsForKill('boss')]).toEqual([10, 30, 40, 50, 80, 150, 1000]);
+    expect([pointsForKill('imp'), pointsForKill('raider'), pointsForKill('boneArcher'), pointsForKill('mireHexer'), pointsForKill('skyCaller'), pointsForKill('brute'), pointsForKill('boss')]).toEqual([10, 30, 40, 50, 80, 150, 3000]);
   });
 
   it('scores kills, rescues, chests and liberation with the flawless bonus', () => {

@@ -30,10 +30,13 @@ export interface GameEventMap {
   'enemy:killed': { type: EnemyType; killType: KillType; elite: boolean; x: number; y: number };
   'encounter:cleared': Record<string, never>;
   'combo:multi': { count: number };
-  'boss:spawned': { name: string; title?: string; max: number };
-  'boss:hp': { hp: number; max: number; phase: 1 | 2 | 3 };
-  'boss:phase': { phase: 1 | 2 | 3 };
+  'boss:spawned': { name: string; title?: string; max: number; phases?: number };
+  'boss:hp': { hp: number; max: number; phase: 1 | 2 | 3 | 4 };
+  'boss:phase': { phase: 1 | 2 | 3 | 4 };
   'boss:died': Record<string, never>;
+  'boss:guard': { guard: number; max: number; broken: boolean; recoveryUntil?: number };
+  'boss:break': Record<string, never>;
+  'boss:warbanner': Record<string, never>;
   'prompt:show': { key: ActionId; label: string; progress?: number };
   'prompt:hide': Record<string, never>;
   'checkpoint:reached': { id: string };

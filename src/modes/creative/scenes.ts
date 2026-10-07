@@ -95,7 +95,7 @@ export class CreativeMenuScene extends MenuScene {
 /** Boss cards generated from bossRegistry plus fight options. */
 export class BossSelectScene extends MenuScene {
   private sel = 0;
-  private phase: 1 | 2 | 3 = 1;
+  private phase: 1 | 2 | 3 | 4 = 1;
   private allies: 'none' | 'auto' = 'none';
   private skipIntro = true;
   private card!: Phaser.GameObjects.Container;

@@ -26,6 +26,7 @@ export interface ProjSpec {
   homing?: { target: Actor; turnRate: number };
   reflectable?: boolean;
   perfect?: boolean;
+  deflected?: boolean;
   /** Ground-hugging shockwave: max travel distance. */
   range?: number;
   w?: number;
@@ -92,6 +93,7 @@ export class Projectiles {
       homing: s.homing,
       reflectable: s.reflectable ?? (s.faction === 'enemy' && s.kind !== 'shock' && s.kind !== 'rainArrow'),
       perfect: s.perfect ?? false,
+      deflected: s.deflected ?? false,
       range: s.range ?? Infinity,
       w: s.w ?? (isArrow ? 10 : 14),
       h: s.h ?? (isArrow ? 8 : 14),
@@ -130,6 +132,7 @@ export class Projectiles {
       p.gravity = 0;
       p.homing = undefined;
       p.faction = 'hero';
+      p.deflected = true;
       p.source = source;
       p.damage = Math.round(p.damage * balance.weapons.sword.deflectDamageMultiplier * 2);
       p.hit.clear();
@@ -234,6 +237,7 @@ export class Projectiles {
           x: p.x,
           y: p.y,
           crit: p.perfect,
+          guardPoise: p.deflected ? balance.guard.poise.deflect : p.kind === 'arrow' ? balance.guard.poise[p.perfect ? 'arrowFull' : 'arrowTap'] : undefined,
           preset: p.perfect ? 'heavy' : undefined,
           byAlly: p.kind === 'allyArrow',
           noHitStop: p.faction === 'enemy' && a.faction !== 'hero',

@@ -204,7 +204,7 @@ export class Ally extends Actor {
     const r = { x: this.x + (this.facing > 0 ? 0 : -w), y: this.body.y, w, h: this.body.height };
     const hits = this.world.combat.hitArea(
       r,
-      { amount: dmg, kind: 'melee', faction: 'ally', source: this, dirX: this.facing, knockback: A.knockback, poise: A.poiseDamage, byAlly: true, noHitStop: true },
+      { amount: dmg, kind: 'melee', faction: 'ally', source: this, dirX: this.facing, knockback: A.knockback, poise: A.poiseDamage, guardPoise: balance.guard.poise.soldier, byAlly: true, noHitStop: true },
       this.hitSet,
     );
     if (hits.length) AudioManager.play('hit', { vol: 0.35, pan: this.world.cam.panFor(this.x) });

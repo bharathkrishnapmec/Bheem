@@ -8,7 +8,7 @@ import type { Actor } from '@/entities/Actor';
 import type { Player } from '@/entities/player/Player';
 import type { Enemy } from '@/entities/enemies/Enemy';
 import type { Ally } from '@/entities/allies/Ally';
-import type { Kaalasura } from '@/entities/boss/Kaalasura';
+import type { BossBase } from '@/entities/boss/BossBase';
 import type { CombatSystem } from '@/systems/CombatSystem';
 import type { FX } from '@/fx/FX';
 import type { Projectiles } from '@/entities/projectiles/Projectiles';
@@ -39,7 +39,9 @@ export interface World {
   player: Player;
   enemies: Set<Enemy>;
   allies: Set<Ally>;
-  boss: Kaalasura | null;
+  boss: BossBase | null;
+  /** Destructible boss props (Warbanners, pylons...) that hero attacks can hit. */
+  extraHostiles: Set<Actor>;
   banners: Banner[];
   interactables: Interactable[];
   combat: CombatSystem;

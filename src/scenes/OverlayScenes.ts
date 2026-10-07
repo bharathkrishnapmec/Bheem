@@ -121,19 +121,20 @@ export class GameOverScene extends Overlay {
   constructor() {
     super('GameOver');
   }
-  create(data: { coinLoss?: number }): void {
+  create(data: { coinLoss?: number; checkpointPhase?: number }): void {
     this.dim(0);
     const bg = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x1a0508, 0).setOrigin(0);
     this.tweens.add({ targets: bg, fillAlpha: 0.8, duration: 600 });
     pxText(this, GAME_W / 2, 130, STR.gameOver.title, 3, PAL.danger).setOrigin(0.5);
     pxText(this, GAME_W / 2, 176, STR.gameOver.subtitle, 2, 0xd8c8d8).setOrigin(0.5);
     if (data.coinLoss) pxText(this, GAME_W / 2, 210, STR.gameOver.coinLoss(data.coinLoss), 2, PAL.cleanseGold).setOrigin(0.5);
+    if (data.checkpointPhase) pxText(this, GAME_W / 2, 236, STR.gameOver.phaseNote, 1, PAL.statusCyan).setOrigin(0.5);
     this.menu = new MenuList(
       this,
       GAME_W / 2,
       270,
       [
-        { label: () => STR.gameOver.retry, onConfirm: () => GameEvents.emit('ui:intent', { type: 'retry' }) },
+        { label: () => (data.checkpointPhase ? STR.gameOver.retryPhase(data.checkpointPhase) : STR.gameOver.retry), onConfirm: () => GameEvents.emit('ui:intent', { type: 'retry' }) },
         { label: () => STR.gameOver.menu, onConfirm: () => this.toMenu() },
       ],
       { width: 300, spacing: 40, scale: 2 },

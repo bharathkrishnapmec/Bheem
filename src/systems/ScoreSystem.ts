@@ -14,6 +14,7 @@ export class ScoreSystem {
   private rescued: number;
   private hurt = false;
   private visited = new Set<DistrictId>();
+  private breaks = 0;
 
   constructor(
     private pos: () => { x: number; y: number },
@@ -28,6 +29,10 @@ export class ScoreSystem {
     on('enemy:killed', (p) => this.add(pointsForKill(p.type), p.x, p.y - 40));
     on('env:kill', () => this.addAtHero(balance.score.envKill, STR.hud.environment));
     on('boss:died', () => this.addAtHero(balance.score.boss));
+    on('boss:break', () => {
+      if (this.breaks++ < balance.score.guardBreakCap) this.addAtHero(balance.score.guardBreak, STR.boss.break);
+    });
+    on('boss:warbanner', () => this.addAtHero(balance.score.warbanner));
     on('rescue:changed', (p) => {
       if (p.rescued > this.rescued) this.addAtHero(balance.score.captive * (p.rescued - this.rescued));
       this.rescued = p.rescued;

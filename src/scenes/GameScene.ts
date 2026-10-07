@@ -12,7 +12,7 @@ import { ScoreSystem } from '@/systems/ScoreSystem';
 import { GameContext, type CreativeStart } from '@/modes/creative/GameContext';
 import { CreativeController, FULL_SQUAD } from '@/modes/creative/CreativeController';
 import { CreativeStore } from '@/modes/creative/CreativeStore';
-import { bossById, phaseStartHp } from '@/modes/creative/bossRegistry';
+import { bossById } from '@/modes/creative/bossRegistry';
 import type { Actor } from '@/entities/Actor';
 import { GameStore } from '@/core/GameStore';
 import { RNG } from '@/core/RNG';
@@ -38,6 +38,8 @@ import { Player } from '@/entities/player/Player';
 import type { Enemy } from '@/entities/enemies/Enemy';
 import type { Ally } from '@/entities/allies/Ally';
 import { Kaalasura } from '@/entities/boss/Kaalasura';
+import type { BossBase } from '@/entities/boss/BossBase';
+import type { BossPhase } from '@/logic/boss';
 import type { Banner } from '@/entities/world/Banner';
 import { Gate } from '@/entities/world/Gate';
 import { Captive, Chest, Shrine } from '@/entities/world/Interactables';
@@ -56,7 +58,8 @@ class GameWorld implements World {
   player!: Player;
   enemies = new Set<Enemy>();
   allies = new Set<Ally>();
-  boss: Kaalasura | null = null;
+  boss: BossBase | null = null;
+  extraHostiles = new Set<Actor>();
   banners: Banner[] = [];
   interactables: Interactable[] = [];
   combat!: CombatSystem;
@@ -86,7 +89,8 @@ class GameWorld implements World {
       for (const a of this.allies) if (a.isAlive()) out.push(a);
     } else {
       for (const e of this.enemies) if (e.isAlive() && e.targetable) out.push(e);
-      if (this.boss?.isAlive()) out.push(this.boss);
+      if (this.boss?.isAlive() && this.boss.targetable) out.push(this.boss);
+      for (const a of this.extraHostiles) if (a.isAlive()) out.push(a);
     }
     return out;
   }
@@ -138,6 +142,8 @@ export class GameScene extends Phaser.Scene {
   private holdTarget: Interactable | null = null;
   private promptShown = false;
   private multi = { n: 0, t: 0 };
+  /** Story boss phase checkpoint (v3 §B2.3): retry restarts at this phase with full resources. */
+  private bossRetryPhase: BossPhase | undefined;
   private dying = false;
   private cinematic = false;
   private debugText: Phaser.GameObjects.BitmapText | null = null;
@@ -148,8 +154,9 @@ export class GameScene extends Phaser.Scene {
     super('Game');
   }
 
-  create(data: { continue?: boolean; creative?: CreativeStart }): void {
+  create(data: { continue?: boolean; creative?: CreativeStart; bossPhase?: BossPhase }): void {
     const creative = !!data.creative;
+    this.bossRetryPhase = undefined;
     if (data.creative) GameContext.enterCreative(data.creative);
     else GameContext.enterStory();
     this.simMs = 0;
@@ -270,6 +277,12 @@ export class GameScene extends Phaser.Scene {
     this.scene.bringToTop('UI');
     GameStore.markAll();
     AudioManager.setMusic('explore');
+    if (!creative && data.bossPhase) {
+      w.player.setPosition(ba.x0 + 220, ba.bossSpawn.y - 1);
+      w.player.body.reset(ba.x0 + 220, ba.bossSpawn.y - 1);
+      w.cam.snap();
+      this.startBoss({ skipIntro: true, phase: data.bossPhase });
+    }
     this.cameras.main.fadeIn(500, 0, 0, 0);
     if (!prog && !creative) this.time.delayedCall(300, () => GameEvents.emit('intro:card', { title: STR.intro.title, subtitle: STR.intro.subtitle, durationMs: 2600 }));
 
@@ -371,7 +384,7 @@ export class GameScene extends Phaser.Scene {
     const L = this.w.level.lighting;
     const d = this.w.districts?.current();
     let preset = L.occupied;
-    if (this.bossStage === 'fight' && this.w.boss?.phase === 3) preset = L.bossP3;
+    if (this.bossStage === 'fight' && (this.w.boss?.phase ?? 0) >= 3) preset = L.bossP3;
     else if (GameContext.creative || (d && this.w.districts.isLiberated(d.id))) preset = L.liberated;
     this.lightTarget = { color: parseInt(preset.tint.replace('#', ''), 16), alpha: preset.alpha };
     if (instant) this.light.setFillStyle(this.lightTarget.color, this.lightTarget.alpha);
@@ -463,8 +476,9 @@ export class GameScene extends Phaser.Scene {
       GameStore.state.deaths++;
       GameStore.flush();
       this.save();
+      this.bossRetryPhase = this.bossStage === 'fight' && w.boss?.isAlive() ? w.boss.phase : undefined;
       this.scene.pause();
-      this.scene.launch('GameOver', { coinLoss: loss });
+      this.scene.launch('GameOver', { coinLoss: loss, checkpointPhase: this.bossRetryPhase });
     });
   }
 
@@ -480,10 +494,10 @@ export class GameScene extends Phaser.Scene {
   private retry(): void {
     this.scene.stop('Pause');
     this.scene.stop('GameOver');
-    this.scene.start('Game', GameContext.creative && GameContext.start ? { creative: GameContext.start } : { continue: true });
+    this.scene.start('Game', GameContext.creative && GameContext.start ? { creative: GameContext.start } : { continue: true, bossPhase: this.bossRetryPhase });
   }
 
-  private startBoss(opts: { skipIntro?: boolean; phase?: 1 | 2 | 3 } = {}): void {
+  private startBoss(opts: { skipIntro?: boolean; phase?: 1 | 2 | 3 | 4 } = {}): void {
     const w = this.w;
     const ba = w.level.bossArena;
     this.bossStage = 'intro';
@@ -510,18 +524,13 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private beginBossFight(boss: Kaalasura, phase: 1 | 2 | 3): void {
+  private beginBossFight(boss: Kaalasura, phase: 1 | 2 | 3 | 4): void {
     if (this.w.boss !== boss || !boss.active) return;
     this.w.player.lock(false);
     this.cinematic = false;
     this.bossStage = 'fight';
     boss.beginFight();
-    if (phase > 1) {
-      boss.hp = phaseStartHp(boss.maxHp, phase);
-      boss.phase = phase;
-      GameStore.setBoss(boss.hp, boss.maxHp, phase);
-      GameEvents.emit('boss:phase', { phase });
-    }
+    if (phase > 1) boss.startAtPhase(phase);
     if (this.creativeCtl) {
       if (GameContext.start?.allies === 'auto') this.creativeCtl.summonSquad();
       this.creativeCtl.fighting = true;
@@ -870,7 +879,7 @@ export class GameScene extends Phaser.Scene {
         `enemies ${alive}/${balance.world.activeEnemyCap} tokens ${w.tokens.inUse} allies ${w.allies.size}`,
         `proj ${w.proj.list.length} loot ${w.loot.items.length}`,
         `district ${w.districts.current()?.id ?? '-'} ${w.districts.current() ? w.districts.states[w.districts.current()!.id] : ''}`,
-        `boss ${this.bossStage} ${w.boss ? `${Math.ceil(w.boss.hp)} p${w.boss.phase} ${w.boss.st}` : ''}`,
+        `boss ${this.bossStage} ${w.boss ? `${Math.ceil(w.boss.hp)} p${w.boss.phase} ${w.boss.currentAttack} g${Math.round(w.boss.guard.guard)}` : ''}`,
         'F3 debug  F4 kill all  F6 warp',
       ].join('\n'),
     );
@@ -923,7 +932,26 @@ export class GameScene extends Phaser.Scene {
       tokens: () => ({ inUse: w.tokens.inUse, capacity: w.tokens.capacity }),
       enemies: () => [...w.enemies].filter((e) => e.isAlive()).length,
       district: () => w.districts.current()?.id ?? null,
-      boss: () => (w.boss ? { hp: w.boss.hp, phase: w.boss.phase } : null),
+      boss: () =>
+        w.boss
+          ? {
+              hp: w.boss.hp,
+              max: w.boss.maxHp,
+              phase: w.boss.phase,
+              attack: w.boss.currentAttack,
+              st: (w.boss as unknown as { st?: string }).st,
+              invuln: Math.round(w.boss.invulnMs),
+              guard: w.boss.guard.snapshot(w.now),
+              crates: w.boss.cratesOnField,
+              fightMs: Math.round(w.boss.fightMs),
+              hellfire: w.boss instanceof Kaalasura ? w.boss.hellfireOn : false,
+              banners: w.boss instanceof Kaalasura ? w.boss.bannerCount : 0,
+            }
+          : null,
+      guardHit: (n: number) => w.boss?.guardHit(n),
+      bossFightMs: (ms: number) => {
+        w.boss?.debugAdvance(ms);
+      },
       warp: (x: number) => {
         w.player.setPosition(x, w.player.y - 300);
         w.player.body.reset(x, w.player.y - 300);
