@@ -1439,6 +1439,38 @@ export function tileTextures(): Record<string, PixelCanvas> {
   for (let i = 0; i < 4; i++) spikes.set(i * 4 + 2, 4, 0xffffff);
   spikes.outline(O);
   out.tile_spikes = spikes;
+  // Lava Forge: basalt + glowing rim, lava surface
+  const basalt = new PixelCanvas(16, 16);
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const n = hash2(x, y, 41);
+      basalt.set(x, y, n > 0.92 ? 0x5a2a20 : n < 0.1 ? 0x120c10 : (x + y * 3) % 11 === 0 ? 0x2a1a1c : 0x221618);
+    }
+  out.tile_basalt = basalt;
+  const basaltTop = new PixelCanvas(16, 8);
+  for (let y = 0; y < 8; y++)
+    for (let x = 0; x < 16; x++) basaltTop.set(x, y, y === 0 ? O : y === 1 ? 0xff8a3a : y === 2 ? 0xc04a20 : hash2(x, y, 43) > 0.8 ? 0x3a2220 : 0x2a1a1c);
+  out.tile_basaltTop = basaltTop;
+  const lava = new PixelCanvas(16, 16);
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const wave = Math.sin((x / 16) * Math.PI * 2 + y * 0.6) * 0.5 + 0.5;
+      const n = hash2(x, y, 47);
+      lava.set(x, y, y === 0 ? 0xffe080 : y < 3 ? 0xffb040 : wave > 0.75 || n > 0.93 ? 0xff9030 : n < 0.1 ? 0x901808 : 0xd84a14);
+    }
+  out.tile_lava = lava;
+  // Sky Citadel: cloud-capped temple stone
+  const skyTop = new PixelCanvas(16, 8);
+  for (let y = 0; y < 8; y++)
+    for (let x = 0; x < 16; x++) skyTop.set(x, y, y === 0 ? O : y === 1 ? 0xf4ecff : y === 2 ? 0xd8c8ee : y === 7 ? 0x5a4a70 : hash2(x, y, 53) > 0.8 ? 0xb8a8d0 : 0x8a7aa8);
+  out.tile_skyTop = skyTop;
+  const skyStone = new PixelCanvas(16, 16);
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const brick = y % 8 === 7 || (x + (Math.floor(y / 8) % 2) * 8) % 16 === 15;
+      skyStone.set(x, y, brick ? 0x3e3256 : hash2(x, y, 57) > 0.85 ? 0x7a6a98 : 0x5e5080);
+    }
+  out.tile_skyStone = skyStone;
   return out;
 }
 

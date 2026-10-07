@@ -64,6 +64,8 @@ export const STATUS_DEFS: Record<StatusId, StatusDef> = {
     },
   },
   marked: { id: 'marked', stacking: 'refresh', modifiers: {} },
+  /** Lava burn: damage is applied by HazardSystem while present; refresh, never stacks (v2 §A6.6). */
+  scorch: { id: 'scorch', stacking: 'refresh', modifiers: {} },
 };
 
 /** Data-driven status handling (§9.4). No status is special-cased inside entity classes. */

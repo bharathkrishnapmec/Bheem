@@ -8,6 +8,10 @@ export const STR = {
   menu: { play: 'PLAY', newGame: 'New Game', continue: 'CONTINUE', creative: 'CREATIVE MODE', settings: 'SETTINGS', pressStart: 'Press any key' },
   pause: { title: 'Paused', resume: 'Resume', restart: 'Restart', settings: 'Settings', quit: 'Main Menu' },
   rotate: 'Rotate your phone',
+  arena: {
+    names: { courtyard: 'Courtyard', training_yard: 'Training Yard', lava_forge: 'Lava Forge', sky_citadel: 'Sky Citadel' },
+    windCatch: 'The wind catches you!',
+  },
   creative: {
     title: 'Creative Mode',
     objectiveSandbox: 'Spawn foes from the Toolbox',
@@ -37,6 +41,10 @@ export const STR = {
     },
     toolbox: 'Toolbox',
     god: 'God Mode',
+    hazards: 'Hazards',
+    paused: 'PAUSED',
+    sandboxArena: 'Sandbox',
+    arena: 'Arena',
     infPrana: 'Infinite Prana',
     infArrows: 'Infinite Arrows',
     instantRally: 'Instant Rally',
@@ -206,6 +214,7 @@ export const STR = {
     bannerFallen: 'BANNER FALLEN',
     districtLiberated: (name: string) => `DISTRICT LIBERATED - ${name.toUpperCase()}`,
     flawless: 'FLAWLESS',
+    environment: 'ENVIRONMENT',
   },
   toasts: {
     captiveFreed: 'Villager freed! +15 Rally',

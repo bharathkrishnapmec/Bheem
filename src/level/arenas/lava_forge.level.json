@@ -1,0 +1,241 @@
+{
+ "name": "Lava Forge",
+ "arenaId": "lava_forge",
+ "arenaType": "arena",
+ "theme": "forge",
+ "width": 1800,
+ "height": 900,
+ "groundY": 700,
+ "cameraZoom": 1,
+ "playerStart": {
+  "x": 780,
+  "y": 700
+ },
+ "heroSpawn": {
+  "x": 780,
+  "y": 700
+ },
+ "bossSpawn": {
+  "x": 1040,
+  "y": 700
+ },
+ "solids": [
+  {
+   "x": -40,
+   "y": 0,
+   "w": 40,
+   "h": 900
+  },
+  {
+   "x": 1800,
+   "y": 0,
+   "w": 40,
+   "h": 900
+  },
+  {
+   "x": 700,
+   "y": 700,
+   "w": 400,
+   "h": 200
+  },
+  {
+   "x": 120,
+   "y": 720,
+   "w": 300,
+   "h": 180
+  },
+  {
+   "x": 1380,
+   "y": 720,
+   "w": 300,
+   "h": 180
+  }
+ ],
+ "oneWays": [
+  {
+   "x": 260,
+   "y": 450,
+   "w": 180,
+   "h": 16
+  },
+  {
+   "x": 1360,
+   "y": 450,
+   "w": 180,
+   "h": 16
+  },
+  {
+   "x": 810,
+   "y": 390,
+   "w": 180,
+   "h": 16
+  }
+ ],
+ "hazards": [],
+ "districts": [],
+ "lavaZones": [
+  {
+   "x": 0,
+   "y": 780,
+   "w": 1800,
+   "h": 120
+  }
+ ],
+ "crumblingPlatforms": [
+  {
+   "rect": {
+    "x": 460,
+    "y": 630,
+    "w": 150,
+    "h": 16
+   },
+   "standMs": 600,
+   "shakeMs": 600,
+   "respawnMs": 4000
+  },
+  {
+   "rect": {
+    "x": 1190,
+    "y": 630,
+    "w": 150,
+    "h": 16
+   },
+   "standMs": 600,
+   "shakeMs": 600,
+   "respawnMs": 4000
+  }
+ ],
+ "movingPlatforms": [
+  {
+   "rect": {
+    "x": 500,
+    "y": 540,
+    "w": 130,
+    "h": 16
+   },
+   "path": "sine-x",
+   "amplitude": 120,
+   "periodMs": 6000
+  },
+  {
+   "rect": {
+    "x": 1170,
+    "y": 540,
+    "w": 130,
+    "h": 16
+   },
+   "path": "sine-x",
+   "amplitude": 120,
+   "periodMs": 6000,
+   "phaseMs": 3000
+  },
+  {
+   "rect": {
+    "x": 835,
+    "y": 560,
+    "w": 130,
+    "h": 16
+   },
+   "path": "sine-y",
+   "amplitude": 80,
+   "periodMs": 5000
+  }
+ ],
+ "geysers": [
+  {
+   "x": 230,
+   "y": 720,
+   "periodMs": 5600,
+   "phaseOffsetMs": 0
+  },
+  {
+   "x": 1570,
+   "y": 720,
+   "periodMs": 5600,
+   "phaseOffsetMs": 2800
+  },
+  {
+   "x": 350,
+   "y": 450,
+   "periodMs": 5600,
+   "phaseOffsetMs": 1400
+  }
+ ],
+ "grappleAnchors": [
+  {
+   "x": 560,
+   "y": 140
+  },
+  {
+   "x": 900,
+   "y": 110
+  },
+  {
+   "x": 1240,
+   "y": 140
+  }
+ ],
+ "safeAnchors": [
+  {
+   "x": 900,
+   "y": 700
+  },
+  {
+   "x": 270,
+   "y": 720
+  },
+  {
+   "x": 1530,
+   "y": 720
+  }
+ ],
+ "bossArena": {
+  "x0": 0,
+  "x1": 1800,
+  "trigger": {
+   "x": 99999,
+   "y": 0,
+   "w": 40,
+   "h": 900
+  },
+  "entryGate": {
+   "x": -200,
+   "y": 700,
+   "h": 300
+  },
+  "bossSpawn": {
+   "x": 1040,
+   "y": 700
+  },
+  "shrine": {
+   "x": -400,
+   "y": 700
+  }
+ },
+ "parallax": [
+  {
+   "key": "bg_sky",
+   "scrollFactor": 0.05,
+   "y": 0
+  },
+  {
+   "key": "bg_far",
+   "scrollFactor": 0.15,
+   "y": 250
+  }
+ ],
+ "lighting": {
+  "occupied": {
+   "tint": "#ff5a1a",
+   "alpha": 0.1
+  },
+  "liberated": {
+   "tint": "#ff7a2a",
+   "alpha": 0.08
+  },
+  "bossP3": {
+   "tint": "#c0100a",
+   "alpha": 0.28
+  }
+ }
+}

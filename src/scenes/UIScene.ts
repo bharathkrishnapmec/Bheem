@@ -367,7 +367,7 @@ export class UIScene extends Phaser.Scene {
     const hud = this.creativeHud!;
     hud.setVisible(!TouchControls.visible);
     const boss = GameContext.start?.kind === 'boss';
-    this.districtText.setText(boss ? STR.creative.bossSelect.toUpperCase() : STR.creative.sandbox.toUpperCase());
+    this.districtText.setText(boss ? STR.creative.bossSelect.toUpperCase() : `${STR.creative.sandboxArena} - ${STR.arena.names[GameContext.start?.arena ?? 'training_yard']}`.toUpperCase());
     this.objective.setText(boss ? STR.creative.objectiveBoss : STR.creative.objectiveSandbox);
     this.styleT -= dt;
     if (this.styleT <= 0) this.styleN = 0;

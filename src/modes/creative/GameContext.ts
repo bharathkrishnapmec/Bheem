@@ -1,3 +1,4 @@
+import type { ArenaId } from '@/level/levelSchema';
 export type GameMode = 'story' | 'creative';
 
 export interface Modifiers {
@@ -6,6 +7,8 @@ export interface Modifiers {
   infiniteArrows: boolean;
   instantRally: boolean;
   noDashCooldown: boolean;
+  /** Creative toolbox: pause geysers / crumbling / wind (lava and void still apply). */
+  hazardsPaused: boolean;
 }
 
 export const storyModifiers = (): Modifiers => ({
@@ -14,10 +17,12 @@ export const storyModifiers = (): Modifiers => ({
   infiniteArrows: false,
   instantRally: false,
   noDashCooldown: false,
+  hazardsPaused: false,
 });
 
 export interface CreativeStart {
   kind: 'sandbox' | 'boss';
+  arena?: ArenaId;
   bossId?: string;
   phase?: 1 | 2 | 3;
   allies?: 'none' | 'auto';

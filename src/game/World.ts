@@ -19,6 +19,7 @@ import type { SummonSystem } from '@/systems/SummonSystem';
 import type { CameraDirector } from '@/fx/CameraDirector';
 import type { DeathFX } from '@/fx/DeathFX';
 import type { Banner } from '@/entities/world/Banner';
+import type { HazardSystem } from '@/systems/HazardSystem';
 
 export interface Interactable {
   x: number;
@@ -52,6 +53,7 @@ export interface World {
   summon: SummonSystem;
   cam: CameraDirector;
   deathFx: DeathFX;
+  hazards: HazardSystem;
   /** Actors that collide with level solids. */
   groundGroup: Phaser.GameObjects.Group;
   solidGroup: Phaser.Physics.Arcade.StaticGroup;
@@ -69,6 +71,8 @@ export interface World {
 }
 
 export function isHostile(a: Faction, b: Faction): boolean {
-  if (a === 'neutral' || b === 'neutral') return false;
+  // Environment ('neutral' source: lava, pits, geysers) hurts everyone; nothing targets neutral actors.
+  if (b === 'neutral') return false;
+  if (a === 'neutral') return true;
   return (a === 'enemy') !== (b === 'enemy');
 }

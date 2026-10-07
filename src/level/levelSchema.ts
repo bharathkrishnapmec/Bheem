@@ -1,3 +1,4 @@
+import { checkReachability } from './reachability';
 import type { DistrictId, EnemyType } from '@/core/types';
 
 export interface Rect {
@@ -6,6 +7,39 @@ export interface Rect {
   w: number;
   h: number;
 }
+export interface Vec2 {
+  x: number;
+  y: number;
+}
+export interface VoidZone {
+  rect: Rect;
+  fallRespawnPoints: Vec2[];
+}
+export interface GeyserDef {
+  x: number;
+  y: number;
+  periodMs: number;
+  phaseOffsetMs: number;
+}
+export interface CrumblingDef {
+  rect: Rect;
+  standMs: number;
+  shakeMs: number;
+  respawnMs: number;
+}
+export interface MovingDef {
+  rect: Rect;
+  path: 'sine-x' | 'sine-y';
+  amplitude: number;
+  periodMs: number;
+  phaseMs?: number;
+}
+export interface UpdraftDef {
+  rect: Rect;
+  vy: number;
+  relockMs: number;
+}
+export type ArenaId = 'courtyard' | 'training_yard' | 'lava_forge' | 'sky_citadel';
 export interface LootSpec {
   coins?: number;
   health?: number;
@@ -88,6 +122,24 @@ export interface LevelData {
   bossArena: BossArenaDef;
   parallax: ParallaxLayer[];
   lighting: { occupied: LightPreset; liberated: LightPreset; bossP3: LightPreset };
+  // ---- Addendum v2 §A6.4 (all optional so older levels stay valid)
+  arenaType?: 'story' | 'arena';
+  arenaId?: ArenaId;
+  name?: string;
+  cameraZoom?: number;
+  lavaZones?: Rect[];
+  voidZones?: VoidZone[];
+  geysers?: GeyserDef[];
+  crumblingPlatforms?: CrumblingDef[];
+  movingPlatforms?: MovingDef[];
+  updrafts?: UpdraftDef[];
+  grappleAnchors?: Vec2[];
+  bossSpawn?: Vec2;
+  /** Alias of playerStart for arena maps. */
+  heroSpawn?: Vec2;
+  safeAnchors?: Vec2[];
+  skyPreset?: 'storm' | 'calm';
+  theme?: 'village' | 'forge' | 'sky';
 }
 
 export class LevelValidationError extends Error {
@@ -220,6 +272,100 @@ export function validateLevel(raw: unknown): LevelData {
       if (!isObj(l) || typeof l.tint !== 'string' || !isNum(l.alpha)) issues.push(`level.lighting.${k} must be {tint, alpha}`);
     }
 
+  validateArenaFields(raw, issues, { num, rect, point, rects });
+
   if (issues.length) throw new LevelValidationError(issues);
   return raw as unknown as LevelData;
+}
+
+interface Checkers {
+  num(o: Obj, k: string, path: string): void;
+  rect(r: unknown, path: string): void;
+  point(p: unknown, path: string, extra?: string[]): void;
+  rects(arr: unknown, path: string, optional?: boolean): void;
+}
+
+const surfaceRects = (raw: Obj): Rect[] => {
+  const out: Rect[] = [];
+  for (const k of ['solids', 'oneWays'] as const) if (Array.isArray(raw[k])) out.push(...(raw[k] as Rect[]).filter((r) => isObj(r)));
+  for (const k of ['crumblingPlatforms', 'movingPlatforms'] as const)
+    if (Array.isArray(raw[k])) for (const c of raw[k] as { rect?: Rect }[]) if (isObj(c) && isObj(c.rect)) out.push(c.rect);
+  return out;
+};
+
+/** A point "stands on ground" if a surface top lies 0..12 px below it within the surface's x span. */
+export function onGround(p: Vec2, surfaces: readonly Rect[]): boolean {
+  return surfaces.some((r) => p.x >= r.x && p.x <= r.x + r.w && r.y - p.y >= -2 && r.y - p.y <= 12);
+}
+
+function validateArenaFields(raw: Obj, issues: string[], c: Checkers): void {
+  const opt = <T>(k: string, each: (v: unknown, path: string) => void): T[] | undefined => {
+    const arr = raw[k];
+    if (arr === undefined) return undefined;
+    if (!Array.isArray(arr)) {
+      issues.push(`level.${k} must be an array`);
+      return undefined;
+    }
+    arr.forEach((v, i) => each(v, `level.${k}[${i}]`));
+    return arr as T[];
+  };
+  if (raw.arenaType !== undefined && raw.arenaType !== 'story' && raw.arenaType !== 'arena') issues.push('level.arenaType must be "story" or "arena"');
+  if (raw.cameraZoom !== undefined && (!isNum(raw.cameraZoom) || raw.cameraZoom <= 0.3 || raw.cameraZoom > 2)) issues.push('level.cameraZoom must be a number in (0.3, 2]');
+  if (raw.skyPreset !== undefined && raw.skyPreset !== 'storm' && raw.skyPreset !== 'calm') issues.push('level.skyPreset must be "storm" or "calm"');
+  const lava = opt<Rect>('lavaZones', (v, p) => c.rect(v, p)) ?? [];
+  const voids = opt<VoidZone>('voidZones', (v, p) => {
+    if (!isObj(v)) return issues.push(`${p} must be an object`);
+    c.rect(v.rect, `${p}.rect`);
+    if (!Array.isArray(v.fallRespawnPoints) || v.fallRespawnPoints.length === 0) issues.push(`${p}.fallRespawnPoints must be a non-empty array`);
+    else v.fallRespawnPoints.forEach((q: unknown, j: number) => c.point(q, `${p}.fallRespawnPoints[${j}]`));
+  });
+  opt('geysers', (v, p) => c.point(v, p, ['periodMs', 'phaseOffsetMs']));
+  opt('crumblingPlatforms', (v, p) => {
+    if (!isObj(v)) return issues.push(`${p} must be an object`);
+    c.rect(v.rect, `${p}.rect`);
+    for (const k of ['standMs', 'shakeMs', 'respawnMs']) c.num(v, k, p);
+  });
+  opt('movingPlatforms', (v, p) => {
+    if (!isObj(v)) return issues.push(`${p} must be an object`);
+    c.rect(v.rect, `${p}.rect`);
+    if (v.path !== 'sine-x' && v.path !== 'sine-y') issues.push(`${p}.path must be "sine-x" or "sine-y"`);
+    for (const k of ['amplitude', 'periodMs']) c.num(v, k, p);
+  });
+  opt('updrafts', (v, p) => {
+    if (!isObj(v)) return issues.push(`${p} must be an object`);
+    c.rect(v.rect, `${p}.rect`);
+    c.num(v, 'vy', p);
+    c.num(v, 'relockMs', p);
+    if (isNum(v.vy) && v.vy >= 0) issues.push(`${p}.vy must be negative (upward)`);
+  });
+  opt('grappleAnchors', (v, p) => c.point(v, p));
+  const anchors = opt<Vec2>('safeAnchors', (v, p) => c.point(v, p)) ?? [];
+  for (const k of ['bossSpawn', 'heroSpawn']) if (raw[k] !== undefined) c.point(raw[k], `level.${k}`);
+  if (issues.length) return;
+
+  if (raw.arenaType === 'arena') {
+    const r = checkReachability(raw as unknown as LevelData);
+    r.unreachable.forEach((u) => issues.push(`unreachable platform ${u.x0}-${u.x1}@${u.y}`));
+  }
+  const surfaces = surfaceRects(raw);
+  anchors.forEach((a, i) => {
+    if (!onGround(a, surfaces)) issues.push(`level.safeAnchors[${i}] (${a.x},${a.y}) is not on solid ground`);
+  });
+  (voids ?? []).forEach((v, i) =>
+    v.fallRespawnPoints.forEach((q, j) => {
+      if (!onGround(q, surfaces)) issues.push(`level.voidZones[${i}].fallRespawnPoints[${j}] (${q.x},${q.y}) is not on solid ground`);
+    }),
+  );
+  const spawns: [string, Vec2][] = [['playerStart', raw.playerStart as Vec2]];
+  if (raw.heroSpawn) spawns.push(['heroSpawn', raw.heroSpawn as Vec2]);
+  if (raw.bossSpawn) spawns.push(['bossSpawn', raw.bossSpawn as Vec2]);
+  for (const [name, sp] of spawns) {
+    lava.forEach((r, i) => {
+      if (sp.x >= r.x && sp.x <= r.x + r.w && sp.y >= r.y - 4 && sp.y <= r.y + r.h) issues.push(`level.${name} overlaps level.lavaZones[${i}]`);
+    });
+    (voids ?? []).forEach((v, i) => {
+      const r = v.rect;
+      if (sp.x >= r.x && sp.x <= r.x + r.w && sp.y >= r.y && sp.y <= r.y + r.h) issues.push(`level.${name} lies inside level.voidZones[${i}]`);
+    });
+  }
 }

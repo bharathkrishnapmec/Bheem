@@ -1,3 +1,5 @@
+import { ARENA_IDS } from '@/level/LevelLoader';
+import type { ArenaId } from '@/level/levelSchema';
 import Phaser from 'phaser';
 import { GAME_H, GAME_W } from '@/config/gameConfig';
 import { PAL } from '@/config/palette';
@@ -56,6 +58,7 @@ abstract class MenuScene extends Phaser.Scene {
 
 /** Main Menu -> Creative Mode hub. */
 export class CreativeMenuScene extends MenuScene {
+  private arena: ArenaId = GameContext.start?.kind === 'sandbox' ? (GameContext.start.arena ?? 'training_yard') : 'training_yard';
   constructor() {
     super('CreativeMenu');
   }
@@ -69,7 +72,13 @@ export class CreativeMenuScene extends MenuScene {
       GAME_W / 2,
       220,
       [
-        { label: () => STR.creative.sandbox, onConfirm: () => this.startCreative({ kind: 'sandbox' }) },
+        {
+          label: () => STR.creative.sandboxArena,
+          value: () => `< ${STR.arena.names[this.arena]} >`,
+          onConfirm: () => this.startCreative({ kind: 'sandbox', arena: this.arena }),
+          onLeft: () => (this.arena = cycle(ARENA_IDS, this.arena, -1)),
+          onRight: () => (this.arena = cycle(ARENA_IDS, this.arena, 1)),
+        },
         { label: () => STR.creative.bossSelect, onConfirm: () => this.scene.start('BossSelect') },
         { label: () => STR.creative.back, onConfirm: () => this.onBack() },
       ],
@@ -208,6 +217,13 @@ export class ToolboxScene extends MenuScene {
     const slow = [1, 0.5, 0.25] as const;
     const items: MenuItem[] = [
       toggle(STR.creative.god, 'godMode'),
+      {
+        label: () => STR.creative.hazards,
+        value: () => (m.hazardsPaused ? STR.creative.paused : STR.creative.on),
+        onConfirm: () => (m.hazardsPaused = !m.hazardsPaused),
+        onLeft: () => (m.hazardsPaused = !m.hazardsPaused),
+        onRight: () => (m.hazardsPaused = !m.hazardsPaused),
+      },
       toggle(STR.creative.infPrana, 'infinitePrana'),
       toggle(STR.creative.infArrows, 'infiniteArrows'),
       toggle(STR.creative.instantRally, 'instantRally'),
@@ -312,7 +328,7 @@ export class CreativeResultScene extends MenuScene {
           },
         },
         { label: () => STR.creative.bossSelect, onConfirm: () => (this.scene.stop(), game().openBossSelect()) },
-        { label: () => STR.creative.sandbox, onConfirm: () => this.startCreative({ kind: 'sandbox' }) },
+        { label: () => STR.creative.sandbox, onConfirm: () => this.startCreative({ kind: 'sandbox', arena: GameContext.start?.arena }) },
         { label: () => STR.pause.quit, onConfirm: () => this.onBack() },
       ],
       { width: 320, spacing: 44, scale: 2 },

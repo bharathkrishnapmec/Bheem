@@ -26,6 +26,7 @@ export class ScoreSystem {
       this.offs.push(() => GameEvents.off(k, fn));
     };
     on('enemy:killed', (p) => this.add(pointsForKill(p.type), p.x, p.y - 40));
+    on('env:kill', () => this.addAtHero(balance.score.envKill, STR.hud.environment));
     on('boss:died', () => this.addAtHero(balance.score.boss));
     on('rescue:changed', (p) => {
       if (p.rescued > this.rescued) this.addAtHero(balance.score.captive * (p.rescued - this.rescued));
@@ -47,9 +48,9 @@ export class ScoreSystem {
     });
   }
 
-  private addAtHero(n: number): void {
+  private addAtHero(n: number, label?: string): void {
     const q = this.pos();
-    this.add(n, q.x, q.y);
+    this.add(n, q.x, q.y, label);
   }
 
   add(n: number, x?: number, y?: number, label?: string): void {

@@ -109,7 +109,7 @@ test('mobile: Creative Mode → Sandbox → Reset → Boss Select → fight → 
   await expect.poll(() => H<number>('h.creative().alive'), { timeout: 1_000 }).toBe(0);
   await page.locator('#touch-controls [data-control="toolbox"]').tap();
   await expect.poll(scene).toBe('Toolbox');
-  await tapTo(480, 70 + 13 * 32 + 5, 'Game'); // Close row
+  await tapTo(480, 70 + 14 * 32 + 5, 'Game'); // Close row (row 14 after the Hazards toggle)
   await page.locator('#touch-controls [data-control="bossSelect"]').tap();
   await expect.poll(scene).toBe('BossSelect');
   await tapTo(318, 172, 'Game'); // tap the selected Kaalasura card to fight

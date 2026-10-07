@@ -38,7 +38,7 @@ export class Player extends Actor {
   private coyote = 0;
   private jumpBuf = 0;
   private atkBuf = 0;
-  private airDashes = 1;
+  airDashes = 1;
   dashCd = 0;
   private dashDir: 1 | -1 = 1;
   crouching = false;
@@ -72,6 +72,8 @@ export class Player extends Actor {
   private clapMarker: Phaser.GameObjects.Image;
   private clapChargeSfx = false;
   safe = { x: 0, y: 0 };
+  /** Lava launch arc: horizontal control is suspended until this time (dash still cancels). */
+  launchUntil = 0;
   private wasGrounded = true;
   private stepT = 0;
   private trailT = 0;
@@ -265,7 +267,7 @@ export class Player extends Actor {
     if (this.staffHeld && this.staffMs > balance.weapons.staff.boltTapMaxMs) mul *= P.castSlowMultiplier;
     const target = this.crouching ? 0 : i.moveX * P.runSpeed * mul;
     const acc = grounded ? (target !== 0 ? P.accel : P.decel) : P.accel * P.airControl;
-    b.setVelocityX(this.approach(b.velocity.x, target, acc, dt));
+    if (this.world.now >= this.launchUntil) b.setVelocityX(this.approach(b.velocity.x, target, acc, dt));
     const aiming = (this.charging || this.staffHeld) && i.aimAngle !== null;
     if (aiming) this.face(Math.cos(i.aimAngle!));
     else if (i.moveX !== 0 && !this.charging) this.face(i.moveX);

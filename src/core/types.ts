@@ -1,7 +1,7 @@
 export type Faction = 'hero' | 'ally' | 'enemy' | 'neutral';
 export type DamageKind = 'melee' | 'arrow' | 'lightning' | 'crush' | 'magic' | 'contact';
-export type KillType = 'slash' | 'arrow' | 'lightning' | 'crush' | 'generic';
-export type StatusId = 'slow' | 'shocked' | 'knockdown' | 'marked';
+export type KillType = 'slash' | 'arrow' | 'lightning' | 'crush' | 'generic' | 'lava' | 'void';
+export type StatusId = 'slow' | 'shocked' | 'knockdown' | 'marked' | 'scorch';
 export type WeaponId = 'sword' | 'bow' | 'staff';
 export type DistrictId = 'gate' | 'market' | 'temple' | 'hall';
 export type EnemyType = 'raider' | 'boneArcher' | 'mireHexer' | 'skyCaller' | 'brute' | 'imp';

@@ -34,6 +34,8 @@ export interface HitInfo {
   x?: number;
   y?: number;
   ignoreIFrames?: boolean;
+  /** Forces the kill type (environmental lava / void deaths). */
+  killAs?: KillType;
 }
 
 export interface HitResult {
@@ -108,7 +110,7 @@ export class CombatSystem {
     if (target.hp <= 0) {
       killed = true;
       target.dead = true;
-      killType = killTypeFor(h.kind, {
+      killType = h.killAs ?? killTypeFor(h.kind, {
         isFinisher: h.isFinisher,
         isClap: h.isClap,
         isSlam: h.isSlam,

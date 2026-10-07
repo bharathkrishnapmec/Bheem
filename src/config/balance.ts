@@ -12,6 +12,7 @@ export const balance = {
     district: 500,
     chest: 50,
     noDamageDistrict: 250,
+    envKill: 25,
   },
   world: {
     physicsFps: 60,
@@ -19,6 +20,30 @@ export const balance = {
     sleepDistanceScreens: 1.5,
     hazardDamage: 10,
     deathBodyGravity: 1400,
+  },
+
+  /** Arena hazards (Addendum v2 §A6). */
+  arenas: {
+    lava: {
+      damage: 15,
+      scorchDps: 4,
+      scorchMs: 2000,
+      launchVy: -640,
+      launchMaxVx: 520,
+      iFramesMs: 800,
+      hitStopMs: 70,
+      eliteEnvDamage: 60,
+      geyser: { teleMs: 1000, eruptMs: 600, w: 56, h: 220, damage: 14, knockUp: 520, tickMs: 400 },
+      crumbleRiseMs: 500,
+      allyStrandMs: 2500,
+    },
+    sky: {
+      fallDamage: 15,
+      iFramesMs: 1000,
+      eliteEnvDamage: 60,
+      gust: { teleMs: 1000, pushMs: 2000, push: 90 },
+      updraftMaxRise: 380,
+    },
   },
 
   player: {
@@ -332,7 +357,9 @@ export const balance = {
     scorchMs: 6000,
     genericSpinDeg: 360,
     genericDissolveDelayMs: 300,
-    hitStop: { slash: 70, arrow: 50, lightning: 80, crush: 90, generic: 40 },
+    hitStop: { slash: 70, arrow: 50, lightning: 80, crush: 90, generic: 40, lava: 40, void: 0 },
+    voidSpinDegPerSec: 540,
+    lavaCharMs: 250,
     elite: { slowMo: 0.25, slowMoMs: 350, zoom: 1.12, zoomOutMs: 400, coinsMin: 8, coinsMax: 12 },
     lastEnemy: { slowMo: 0.3, slowMoMs: 500, zoom: 1.08 },
     multiKill: { count: 3, windowMs: 600, coins: 4 },

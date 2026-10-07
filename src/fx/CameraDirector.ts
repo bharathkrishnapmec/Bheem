@@ -25,6 +25,8 @@ export class CameraDirector {
   focus: { x: number; y: number } | null = null;
   focusLerp = 0.08;
   aimOffset = 0;
+  /** Per-arena resting zoom (v2 §A6.2: Sky Citadel 0.9). */
+  baseZoom = 1;
   private sx = 0;
   private sy = 0;
 
@@ -69,7 +71,7 @@ export class CameraDirector {
 
   unfocus(ms: number): void {
     this.focus = null;
-    this.zoomTo(1, ms);
+    this.zoomTo(this.baseZoom, ms);
   }
 
   zoomTo(z: number, ms: number): void {

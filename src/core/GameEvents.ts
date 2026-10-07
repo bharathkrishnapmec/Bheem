@@ -10,6 +10,9 @@ export interface GameEventMap {
   'player:dash': { cooldownMs: number };
   'player:died': Record<string, never>;
   'player:hazard': Record<string, never>;
+  'hazard:lava-hit': Record<string, never>;
+  'hazard:fall-catch': Record<string, never>;
+  'env:kill': { type: EnemyType; via: 'lava' | 'void' };
   'player:hurt': { amount: number };
   'rally:changed': { value: number; max: number; ready: boolean };
   'summon:started': { durationMs: number; squadSize: number };

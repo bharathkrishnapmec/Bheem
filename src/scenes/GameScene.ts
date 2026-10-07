@@ -22,13 +22,14 @@ import type { DistrictId, Faction, KillType } from '@/core/types';
 import { coinLossOnDeath } from '@/logic/damage';
 import { rollDrops } from '@/logic/loot';
 import { addRally, rallyForKill } from '@/logic/summon';
-import { loadCreativeArena, loadVillage } from '@/level/LevelLoader';
+import { loadArena, loadVillage } from '@/level/LevelLoader';
+import { HazardSystem } from '@/systems/HazardSystem';
 import { LevelGeometry } from '@/level/geometry';
 import type { LevelData } from '@/level/levelSchema';
 import { AudioManager } from '@/audio/AudioManager';
 import { InputManager } from '@/input/InputManager';
 import { emptyInput } from '@/input/InputState';
-import { Parallax } from '@/fx/Parallax';
+import { Parallax, coverZoom } from '@/fx/Parallax';
 import { FX } from '@/fx/FX';
 import { CameraDirector } from '@/fx/CameraDirector';
 import { DeathFX } from '@/fx/DeathFX';
@@ -69,6 +70,7 @@ class GameWorld implements World {
   summon!: SummonSystem;
   cam!: CameraDirector;
   deathFx!: DeathFX;
+  hazards!: HazardSystem;
   groundGroup!: Phaser.GameObjects.Group;
   solidGroup!: Phaser.Physics.Arcade.StaticGroup;
   progress = { rescued: new Set<string>(), chests: new Set<string>(), banners: new Set<string>(), checkpointId: '' };
@@ -152,7 +154,7 @@ export class GameScene extends Phaser.Scene {
     else GameContext.enterStory();
     this.simMs = 0;
     this.fightStartMs = -1;
-    const res = creative ? loadCreativeArena() : loadVillage();
+    const res = creative ? loadArena(data.creative?.arena) : loadVillage();
     if (!res.level) {
       pxText(this, GAME_W / 2, GAME_H / 2, `${STR.errors.level}\n${res.error ?? ''}`, 2, PAL.danger).setOrigin(0.5);
       return;
@@ -161,7 +163,7 @@ export class GameScene extends Phaser.Scene {
     const level = res.level;
     const w = (this.w = new GameWorld(this, this));
     w.level = level;
-    w.geo = new LevelGeometry(level.solids, level.oneWays);
+    w.geo = new LevelGeometry(level.solids, [...level.oneWays, ...(level.crumblingPlatforms ?? []).map((c) => c.rect), ...(level.movingPlatforms ?? []).map((m) => m.rect)]);
     const prog = !creative && data.continue ? SaveManager.get().progress : undefined;
     const totalCaptives = level.districts.reduce((n, d) => n + d.captives.length, 0);
     GameStore.reset({
@@ -188,6 +190,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBoundsCollision(true, true, false, false);
     this.cameras.main.setBackgroundColor(BG_COLOR);
     this.bg = new Parallax(this, level.groundY - 380);
+    if (level.theme) this.bg.setTheme(level.theme);
     this.buildTerrain(level);
 
     w.solidGroup = this.physics.add.staticGroup();
@@ -198,6 +201,8 @@ export class GameScene extends Phaser.Scene {
 
     w.fx = new FX(this);
     w.cam = new CameraDirector(this, level.width, level.height);
+    w.cam.baseZoom = level.cameraZoom ?? 1;
+    if (w.cam.baseZoom !== 1) w.cam.zoomTo(w.cam.baseZoom, 0);
     w.tokens = new AttackTokenSystem();
     w.combat = new CombatSystem(w);
     w.proj = new Projectiles(w);
@@ -238,10 +243,15 @@ export class GameScene extends Phaser.Scene {
 
     this.physics.add.collider(w.groundGroup, w.solidGroup);
     this.physics.add.collider(w.groundGroup, oneWay, undefined, (a, p) => this.oneWayCheck(a as Actor, p as Phaser.Physics.Arcade.Image), this);
+    w.hazards = new HazardSystem(w, (a, p) => this.oneWayCheck(a as Actor, p as Phaser.Physics.Arcade.Image));
 
     this.light = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0).setOrigin(0).setScrollFactor(0).setDepth(700);
     this.weatherG = this.add.graphics().setScrollFactor(0).setDepth(690);
     this.fog = this.add.tileSprite(0, 0, GAME_W, GAME_H, 'noise').setOrigin(0).setScrollFactor(0).setDepth(689).setAlpha(0).setTint(0xb8a8d8).setTileScale(24);
+    if (w.cam.baseZoom !== 1) {
+      this.bg.fitZoom(w.cam.baseZoom);
+      for (const o of [this.light, this.weatherG, this.fog]) coverZoom(o, w.cam.baseZoom);
+    }
     this.updateLighting(true);
 
     w.cam.follow(w.player);
@@ -285,6 +295,7 @@ export class GameScene extends Phaser.Scene {
       GameEvents.off('ui:intent', onRetry);
       GameEvents.off('app:background', onBackground);
       score.destroy();
+      this.w.hazards?.destroy();
       GameEvents.off('boss:phase', onPhase);
       this.creativeCtl?.destroy();
       this.creativeCtl = null;
@@ -337,12 +348,14 @@ export class GameScene extends Phaser.Scene {
 
   private buildTerrain(level: LevelData): void {
     const stoneFrom = level.districts.find((d) => d.id === 'temple')?.bounds.x0 ?? 1e9;
+    const theme = level.theme === 'forge' ? ['tile_basaltTop', 'tile_basalt'] : level.theme === 'sky' ? ['tile_skyTop', 'tile_skyStone'] : null;
     for (const r of level.solids) {
       const stone = r.x >= stoneFrom;
-      this.add.tileSprite(r.x, r.y, r.w, Math.min(16, r.h), stone ? 'tile_stoneTop' : 'tile_grass').setOrigin(0).setDepth(20);
-      if (r.h > 16) this.add.tileSprite(r.x, r.y + 16, r.w, r.h - 16, stone ? 'tile_stone' : 'tile_dirt').setOrigin(0).setDepth(19);
+      const [top, body] = theme ?? (stone ? ['tile_stoneTop', 'tile_stone'] : ['tile_grass', 'tile_dirt']);
+      this.add.tileSprite(r.x, r.y, r.w, Math.min(16, r.h), top!).setOrigin(0).setDepth(20);
+      if (r.h > 16) this.add.tileSprite(r.x, r.y + 16, r.w, r.h - 16, body!).setOrigin(0).setDepth(19);
     }
-    for (const r of level.oneWays) this.add.tileSprite(r.x, r.y, r.w, 12, 'tile_plank').setOrigin(0).setDepth(21);
+    for (const r of level.oneWays) this.add.tileSprite(r.x, r.y, r.w, 12, theme ? theme[0]! : 'tile_plank').setOrigin(0).setDepth(21);
     for (const h of level.hazards ?? []) this.add.tileSprite(h.x, h.y + h.h - 16, h.w, 16, 'tile_spikes').setOrigin(0).setDepth(22);
     for (const d of level.districts)
       for (const a of d.ambient) {
@@ -736,6 +749,7 @@ export class GameScene extends Phaser.Scene {
     this.multi.t -= realDt;
 
     // hazards & pits
+    if (!this.dying) w.hazards.update(dt);
     if (!p.dead && !this.dying) {
       if (p.y > w.level.height + 60) {
         w.combat.hit(p, { amount: balance.world.hazardDamage * 2, kind: 'contact', faction: 'neutral', dirX: 0, knockback: 0, poise: 0, ignoreIFrames: true, noHitStop: true });
@@ -872,6 +886,14 @@ export class GameScene extends Phaser.Scene {
     const w = this.w;
     (window as unknown as { __BHEEM__: unknown }).__BHEEM__ = {
       scene: 'Game',
+      arena: () => ({ id: w.level.arenaId ?? 'village', zoom: w.cam.baseZoom, crumbles: w.hazards.crumbles.map((c) => c.c.state), movers: w.hazards.movers.length, gust: w.hazards.gustActive }),
+      setPlayer: (x: number, y: number) => {
+        w.player.setPosition(x, y);
+        w.player.body.reset(x, y);
+        w.player.body.setVelocity(0, 0);
+      },
+      spawnAt: (type: EnemyType, x: number, y: number, elite = false) => !!w.spawner.spawnEnemy(type, x, y, { aggro: true, required: false, elite }),
+      gust: (dir: 1 | -1) => w.hazards.startGust(dir),
       player: () => ({ x: w.player.x, y: w.player.y, hp: w.player.hp, st: w.player.st, weapon: w.player.weapon, ammo: w.player.ammo, prana: w.player.prana }),
       spawn: (type: EnemyType, dx: number) => (w.spawner.spawnEnemy(type, w.player.x + dx, w.player.y, { aggro: true, required: false }) ? true : false),
       enemyHp: () => [...w.enemies].filter((e) => e.isAlive()).map((e) => e.hp),
