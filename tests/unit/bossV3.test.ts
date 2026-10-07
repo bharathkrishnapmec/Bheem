@@ -76,3 +76,21 @@ describe('boss v3 shared rules', () => {
     expect(guardPoiseFor({ kind: 'arrow', faction: 'hero', guardPoise: 80 }, P)).toBe(80);
   });
 });
+
+describe('Garjana v3 tuning', () => {
+  const G = balance.garjana;
+  it('keeps every ordinary attack under the 35 cap and Judgment under the 45 ultimate cap', () => {
+    for (const a of Object.values(G.attacks)) if ('damage' in a) expect(a.damage).toBeLessThanOrEqual(balance.bosses.global.maxHitDamage);
+    for (const j of G.judgment) expect(j.damage).toBeLessThanOrEqual(balance.bosses.global.ultimateMaxHit);
+  });
+  it('only weights attacks that exist, and adds Sky Dive from phase 2', () => {
+    for (const ph of [1, 2, 3, 4] as const) for (const k of Object.keys(G.weights[ph])) expect(k in G.attacks).toBe(true);
+    expect('skyDive' in G.weights[1]).toBe(false);
+    expect('skyDive' in G.weights[2]).toBe(true);
+    expect('stormSurge' in G.weights[4]).toBe(true);
+  });
+  it('second Judgment is harder: fewer pads, longer telegraph', () => {
+    expect(G.judgment[1]!.pads).toBeLessThan(G.judgment[0]!.pads);
+    expect(G.judgment[1]!.telegraphMs).toBeGreaterThan(G.judgment[0]!.telegraphMs);
+  });
+});

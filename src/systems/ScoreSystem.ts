@@ -33,6 +33,7 @@ export class ScoreSystem {
       if (this.breaks++ < balance.score.guardBreakCap) this.addAtHero(balance.score.guardBreak, STR.boss.break);
     });
     on('boss:warbanner', () => this.addAtHero(balance.score.warbanner));
+    on('boss:perfectDeflect', () => this.addAtHero(balance.score.perfectDeflect, STR.garjana.perfect));
     on('rescue:changed', (p) => {
       if (p.rescued > this.rescued) this.addAtHero(balance.score.captive * (p.rescued - this.rescued));
       this.rescued = p.rescued;

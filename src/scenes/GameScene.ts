@@ -497,7 +497,7 @@ export class GameScene extends Phaser.Scene {
     this.scene.start('Game', GameContext.creative && GameContext.start ? { creative: GameContext.start } : { continue: true, bossPhase: this.bossRetryPhase });
   }
 
-  private startBoss(opts: { skipIntro?: boolean; phase?: 1 | 2 | 3 | 4 } = {}): void {
+  private startBoss(opts: { skipIntro?: boolean; phase?: 1 | 2 | 3 | 4; make?: (w: World, x: number, y: number) => BossBase } = {}): void {
     const w = this.w;
     const ba = w.level.bossArena;
     this.bossStage = 'intro';
@@ -505,8 +505,9 @@ export class GameScene extends Phaser.Scene {
     w.summon.dismissAll();
     w.cam.setBounds({ x0: ba.x0, x1: ba.x1 });
     AudioManager.setMusic('boss');
-    const boss = (w.boss = new Kaalasura(w, ba.bossSpawn.x, ba.bossSpawn.y - 1));
-    w.groundGroup.add(boss);
+    const make = opts.make ?? ((ww: World, x: number, y: number) => new Kaalasura(ww, x, y));
+    const boss = (w.boss = make(w, ba.bossSpawn.x, ba.bossSpawn.y - 1));
+    if (!boss.flying) w.groundGroup.add(boss);
     boss.onDefeated = () => this.bossDefeated();
     if (opts.skipIntro) {
       this.time.delayedCall(250, () => this.beginBossFight(boss, opts.phase ?? 1));
@@ -515,7 +516,7 @@ export class GameScene extends Phaser.Scene {
     w.player.lock(true);
     this.cinematic = true;
     w.cam.focusOn(boss.x, boss.cy, 1.15, 500);
-    GameEvents.emit('intro:card', { title: STR.boss.name, subtitle: STR.boss.title, durationMs: balance.boss.introMs });
+    GameEvents.emit('intro:card', { title: boss.displayName, subtitle: boss.displayTitle, durationMs: balance.boss.introMs });
     AudioManager.play('roar');
     this.time.delayedCall(700, () => w.cam.shake(8, 900));
     this.time.delayedCall(balance.boss.introMs, () => {
@@ -524,7 +525,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private beginBossFight(boss: Kaalasura, phase: 1 | 2 | 3 | 4): void {
+  private beginBossFight(boss: BossBase, phase: 1 | 2 | 3 | 4): void {
     if (this.w.boss !== boss || !boss.active) return;
     this.w.player.lock(false);
     this.cinematic = false;
@@ -545,7 +546,8 @@ export class GameScene extends Phaser.Scene {
     if (!cs || cs.kind !== 'boss' || !ctl) return;
     const entry = bossById(cs.bossId);
     ctl.resetStats();
-    if (entry.id === 'kaalasura') return this.startBoss({ skipIntro: cs.skipIntro !== false, phase: cs.phase ?? 1 });
+    if (entry.boss) return this.startBoss({ skipIntro: cs.skipIntro !== false, phase: (Math.min(cs.phase ?? 1, entry.phases) || 1) as 1 | 2 | 3 | 4, make: entry.boss });
+    if (!entry.factory) return;
     const ba = this.w.level.bossArena;
     const fight = entry.factory(this.w, ba.bossSpawn.x, ba.bossSpawn.y - 1);
     this.miniBoss = fight.actor;
@@ -665,7 +667,7 @@ export class GameScene extends Phaser.Scene {
     TimeController.slowMo(0.25, 1600, 60);
     w.cam.focusOn(boss.x, boss.cy, 1.5, 300);
     w.fx.flash(0xffffff, 0.8, 150);
-    boss.anims.play('boss:kneel');
+    boss.anim('kneel', false);
     const R = this.reducedFx();
     const bursts = R ? 3 : 8;
     for (let i = 0; i < bursts; i++)

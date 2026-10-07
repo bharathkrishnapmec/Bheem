@@ -93,6 +93,8 @@ export class CreativeMenuScene extends MenuScene {
 }
 
 /** Boss cards generated from bossRegistry plus fight options. */
+const phaseList = (n: number): readonly (1 | 2 | 3 | 4)[] => ([1, 2, 3, 4] as const).slice(0, Math.max(1, n));
+
 export class BossSelectScene extends MenuScene {
   private sel = 0;
   private phase: 1 | 2 | 3 | 4 = 1;
@@ -121,9 +123,9 @@ export class BossSelectScene extends MenuScene {
       {
         label: () => STR.creative.startPhase,
         value: () => `< ${Math.min(this.phase, boss().phases)} >`,
-        onLeft: () => (this.phase = cycle([1, 2, 3] as const, this.phase, -1)),
-        onRight: () => (this.phase = cycle([1, 2, 3] as const, this.phase, 1)),
-        onConfirm: () => (this.phase = cycle([1, 2, 3] as const, this.phase, 1)),
+        onLeft: () => (this.phase = cycle(phaseList(boss().phases), this.phase, -1)),
+        onRight: () => (this.phase = cycle(phaseList(boss().phases), this.phase, 1)),
+        onConfirm: () => (this.phase = cycle(phaseList(boss().phases), this.phase, 1)),
         enabled: () => boss().phases > 1,
       },
       {
@@ -175,7 +177,7 @@ export class BossSelectScene extends MenuScene {
         pxText(this, x + 110, 88, b.name, b.name.length > 10 ? 1.5 : 2, on ? PAL.cleanseGold : 0xc8c0d8),
         pxText(this, x + 110, 110, b.title, 1, PAL.statusCyan),
         pxText(this, x + 110, 130, `${STR.creative.hp} ${b.hp}   ${STR.creative.phases} ${b.phases}`, 1, 0xffffff),
-        pxText(this, x + 110, 146, `${STR.creative.bestTime} ${fmt(CreativeStore.bestTime(b.id))}`, 1, PAL.cleanseGold),
+        pxText(this, x + 110, 146, `${STR.creative.bestTime} ${fmt(CreativeStore.bestTime(b.id))}  ${b.estimate}`, 1, PAL.cleanseGold),
         pxText(this, x + 110, 166, b.description, 1, 0xd8d0e8).setMaxWidth(cw - 122),
         zone,
       ]);
@@ -183,7 +185,7 @@ export class BossSelectScene extends MenuScene {
   }
   private fight(): void {
     const b = bossRegistry[this.sel]!;
-    this.startCreative({ kind: 'boss', bossId: b.id, phase: b.phases > 1 ? this.phase : 1, allies: this.allies, skipIntro: this.skipIntro });
+    this.startCreative({ kind: 'boss', bossId: b.id, arena: b.arenas[0], phase: (b.phases > 1 ? Math.min(this.phase, b.phases) : 1) as 1 | 2 | 3 | 4, allies: this.allies, skipIntro: this.skipIntro });
   }
   protected onBack(): void {
     this.scene.start('CreativeMenu');

@@ -238,6 +238,7 @@ export class Projectiles {
           y: p.y,
           crit: p.perfect,
           guardPoise: p.deflected ? balance.guard.poise.deflect : p.kind === 'arrow' ? balance.guard.poise[p.perfect ? 'arrowFull' : 'arrowTap'] : undefined,
+          deflected: p.deflected,
           preset: p.perfect ? 'heavy' : undefined,
           byAlly: p.kind === 'allyArrow',
           noHitStop: p.faction === 'enemy' && a.faction !== 'hero',

@@ -36,6 +36,8 @@ export interface HitInfo {
   ignoreIFrames?: boolean;
   /** Guard Gauge poise (v3 §B3); derived from kind when omitted. */
   guardPoise?: number;
+  /** A projectile the hero deflected back with the sword. */
+  deflected?: boolean;
   /** Forces the kill type (environmental lava / void deaths). */
   killAs?: KillType;
 }

@@ -344,6 +344,48 @@ export const balance = {
   },
 
   /** Shared boss tuning (Boss Buff v3 §B2). Damage values in boss blocks already include damageScale. */
+  /** Garjana, the Storm Archer (Addendum v2 §A7 + Boss Buff v3 §B5; damage already includes ×1.25). */
+  garjana: {
+    hoverMin: 260,
+    hoverMax: 380,
+    glideMs: 800,
+    bob: 12,
+    anchorsFrac: [0.2, 0.5, 0.8],
+    lowHover: 30,
+    bowMul: 1.25,
+    staffMul: 0.2,
+    deflectFlat: 120,
+    orbDeflectFlat: 60,
+    flinchMs: 1500,
+    flinchCdMs: 8000,
+    flinchY: 120,
+    transitionAltitude: 400,
+    attacks: {
+      lightningArrow: { telegraphMs: 700, ranged: true, recoverMs: 700, damage: 15, columnDamage: 17, speed: 700, volleyChance: 0.4, volleyGapMs: 350, columnDelayMs: 500, columnR: 60 },
+      thunderRain: { telegraphMs: 800, ranged: true, recoverMs: 800, markers: 4, spread: 160, jitter: 30, damage: 20, r: 50, minGap: 120 },
+      stormOrbs: { telegraphMs: 900, ranged: true, recoverMs: 900, count: 4, damage: 12, speed: 220, turnRate: 1.6, lifeMs: 4000, gapMs: 500 },
+      skyDive: { telegraphMs: 900, ranged: false, recoverMs: 2200, damage: 25, speed: 900 },
+      updraftBurst: { telegraphMs: 700, ranged: true, recoverMs: 700, arrows: 3, spreadDeg: 14, damage: 11, speed: 600 },
+      tempest: { telegraphMs: 800, ranged: true, recoverMs: 900, rings: 4, perRing: 8, gapMs: 500, damage: 10, speed: 260 },
+      chainStorm: { telegraphMs: 900, ranged: true, recoverMs: 800, hops: 4, hopMs: 300, damage: 14, r: 70 },
+      stormHawks: { telegraphMs: 700, ranged: true, recoverMs: 700, count: 2, hp: 40, guardHit: 80, barrierDropMs: 3000, pranaChance: 0.5 },
+      stormSurge: { telegraphMs: 1000, ranged: true, recoverMs: 900, pulses: 3, gapMs: 700, damage: 18, speed: 420, height: 40 },
+    },
+    weights: {
+      1: { lightningArrow: 35, thunderRain: 30, stormOrbs: 35 },
+      2: { lightningArrow: 25, thunderRain: 20, stormOrbs: 20, skyDive: 20, updraftBurst: 15 },
+      3: { lightningArrow: 15, thunderRain: 15, stormOrbs: 10, skyDive: 15, updraftBurst: 10, tempest: 20, chainStorm: 20, stormHawks: 20 },
+      4: { lightningArrow: 10, thunderRain: 10, stormOrbs: 8, skyDive: 15, updraftBurst: 8, tempest: 15, chainStorm: 15, stormHawks: 12, stormSurge: 25 },
+    },
+    barrier: { diveWindowMs: 2500, diveWindowPylonMs: 1500, rainDropMs: 1200, flickerMs: 500 },
+    pylons: { count: 3, hp: 150, stormDownMs: 14000, stormDownGuardMul: 1.5 },
+    gustEveryMs: { 3: 12000, 4: 8000 },
+    judgment: [
+      { at: 0.2, telegraphMs: 2500, pads: 3, damage: 40, padR: 70, vulnMs: 4000, reach: 700 },
+      { at: 0.08, telegraphMs: 3000, pads: 2, damage: 45, padR: 70, vulnMs: 8000, reach: 700 },
+    ],
+    judgmentFloorFrac: 0.04,
+  },
   bosses: {
     global: {
       damageScale: 1.25,

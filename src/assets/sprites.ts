@@ -704,6 +704,90 @@ export function bossSheet(): SheetSpec {
   };
 }
 
+const GARJANA: HumSpec = {
+  fw: 84,
+  fh: 72,
+  legLen: 14,
+  torsoH: 20,
+  tw: 18,
+  headR: 6,
+  body: 0x2a3a6a,
+  bodyDark: 0x1a2648,
+  legs: 0x1e2a4a,
+  legsDark: 0x121a30,
+  boots: 0x0c1020,
+  arm: 0x34487a,
+  hand: 0x8a9ac0,
+  weapon: 'bow',
+  back(pc, j) {
+    const t = j.pose.t ?? 0;
+    const flap = (t % 2) * 3 + (j.pose.glow ? -2 : 0);
+    const cx = j.cx + (j.pose.lean ?? 0);
+    for (const s of [-1, 1]) {
+      pc.poly(
+        [
+          [cx, j.shY + 2],
+          [cx + s * 34, j.shY - 14 + flap],
+          [cx + s * 38, j.shY - 4 + flap],
+          [cx + s * 30, j.shY + 10 + flap],
+          [cx + s * 20, j.shY + 18],
+          [cx + s * 6, j.shY + 16],
+        ],
+        0xc8d8f0,
+      );
+      for (let k = 1; k < 4; k++) pc.line(cx + s * (6 + k * 8), j.shY + 14 - k, cx + s * (10 + k * 8), j.shY - 6 - k * 3 + flap, 0x7a8ab0);
+    }
+  },
+  torso(pc, j, x0, y0) {
+    const bolt = j.pose.glow ? 0xffffff : PAL.statusCyan;
+    pc.rect(x0, y0, 18, 3, PAL.gold);
+    pc.rect(x0 + 2, j.hipY - 3, 14, 3, 0x0c1020);
+    pc.line(x0 + 4, y0 + 4, x0 + 9, y0 + 11, bolt);
+    pc.line(x0 + 9, y0 + 11, x0 + 6, y0 + 13, bolt);
+    pc.line(x0 + 6, y0 + 13, x0 + 12, y0 + 19, bolt);
+    pc.ellipse(x0 + 1, y0 + 2, 4, 3, 0x1a2648);
+    pc.ellipse(x0 + 17, y0 + 2, 4, 3, 0x1a2648);
+  },
+  head(pc, j) {
+    const { headX: hx, headY: hy } = j;
+    pc.disc(hx, hy + 1, 6, 0x2a3a6a);
+    pc.rect(hx - 5, hy - 5, 11, 3, PAL.gold);
+    pc.poly(
+      [
+        [hx - 4, hy - 5],
+        [hx - 2, hy - 13],
+        [hx, hy - 5],
+      ],
+      0xe8f0ff,
+    );
+    pc.poly(
+      [
+        [hx + 1, hy - 5],
+        [hx + 4, hy - 12],
+        [hx + 5, hy - 5],
+      ],
+      0xe8f0ff,
+    );
+    pc.rect(hx + 1, hy - 1, 5, 2, 0x0c1020);
+    pc.rect(hx + 2, hy - 1, 3, 1, PAL.statusCyan);
+    pc.rect(hx - 1, hy + 3, 6, 3, 0xd8e0f0);
+  },
+};
+
+export function garjanaSheet(): SheetSpec {
+  const P = (p: Pose) => humanoid(GARJANA, { weaponAng: -60, ra: [6, 4], la: [-3, 14], ...p });
+  return {
+    idle: { frames: [0, 1, 2, 3].map((i) => P({ bob: i < 2 ? 0 : 1, t: i })), fps: 6, repeat: -1 },
+    bow: { frames: [P({ ra: [16, -2], la: [6, -2], weaponAng: -5, lean: 1, t: 1 })], fps: 1, repeat: 0 },
+    cast: { frames: [P({ ra: [4, -10], la: [16, -4], glow: true, t: 0 }), P({ ra: [4, -10], la: [17, -5], glow: false, t: 1 })], fps: 8, repeat: -1 },
+    windup: { frames: [P({ lean: -3, crouch: 2, ra: [-4, -12], la: [-6, -10], t: 0 })], fps: 1, repeat: 0 },
+    dive: { frames: [P({ lean: 6, ra: [14, 6], la: [10, 8], weaponAng: 20, t: 1 })], fps: 1, repeat: 0 },
+    roar: { frames: [P({ ra: [8, -14], la: [-8, -14], glow: true, lean: -2, t: 0 }), P({ ra: [9, -15], la: [-9, -15], glow: false, lean: -2, t: 1 })], fps: 10, repeat: -1 },
+    hurt: { frames: [P({ lean: -4, ra: [-2, 2], weaponAng: -130 })], fps: 1, repeat: 0 },
+    kneel: { frames: [P({ crouch: 8, lean: 2, ra: [10, 12], la: [4, 14], weaponAng: 95, glow: true })], fps: 1, repeat: 0 },
+  };
+}
+
 // ---------------------------------------------------------------- allies & villagers
 function allySpec(kind: 'spearman' | 'archer' | 'shieldbearer' | 'captain'): HumSpec {
   const cap = kind === 'captain';
