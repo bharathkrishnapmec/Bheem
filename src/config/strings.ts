@@ -260,7 +260,7 @@ export const STR = {
     clear: (n: number) => `Defeat the garrison (${n} left)`,
     banner: 'Destroy the occupation banner',
     proceed: 'District liberated - move on',
-    boss: 'Defeat Kaalasura',
+    boss: (name: string) => `Defeat ${name.charAt(0)}${name.slice(1).toLowerCase()}`,
     arena: 'Enter the courtyard',
   },
   prompts: {
