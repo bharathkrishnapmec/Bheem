@@ -160,21 +160,22 @@ export class BossSelectScene extends MenuScene {
     const gap = 24;
     const cw = Math.min(300, Math.floor((GAME_W - 32 - (n - 1) * gap) / n));
     const compact = cw < 280;
+    const ch = compact ? 216 : 196;
     const x0 = GAME_W / 2 - (n * cw + (n - 1) * gap) / 2;
     bossRegistry.forEach((b, i) => {
       const x = x0 + i * (cw + gap);
       const on = i === this.sel;
       const g = this.add.graphics();
-      drawPanel(g, x, 74, cw, 196, { alpha: on ? 0.98 : 0.7, trim: on ? PAL.cleanseGold : undefined });
-      const thumb = this.add.image(compact ? x + cw / 2 : x + 54, compact ? 146 : 220, b.thumbnailKey, 0).setOrigin(0.5, 1);
-      thumb.setScale(Math.min(1, (compact ? 64 : 96) / Math.max(thumb.height, 1))).setAlpha(on ? 1 : 0.6);
-      const zone = this.add.zone(x, 74, cw, 196).setOrigin(0).setInteractive({ useHandCursor: true });
+      drawPanel(g, x, 74, cw, ch, { alpha: on ? 0.98 : 0.7, trim: on ? PAL.cleanseGold : undefined });
+      const thumb = this.add.image(compact ? x + cw / 2 : x + 54, compact ? 126 : 220, b.thumbnailKey, 0).setOrigin(0.5, 1);
+      thumb.setScale(Math.min(1, (compact ? 50 : 96) / Math.max(thumb.height, 1))).setAlpha(on ? 1 : 0.6);
+      const zone = this.add.zone(x, 74, cw, ch).setOrigin(0).setInteractive({ useHandCursor: true });
       zone.on('pointerdown', () => {
         if (this.sel === i) this.fight();
         else this.pick(i - this.sel);
       });
       const tx = compact ? x + 10 : x + 110;
-      const ty = compact ? 150 : 88;
+      const ty = compact ? 130 : 88;
       this.card.add([
         g,
         thumb,

@@ -142,7 +142,7 @@ export const STR = {
   bruteChampion: {
     name: 'BRUTE CHAMPION',
     title: 'the Iron Hammer',
-    desc: 'Training Yard. Slams, charges and a Berserk phase that calls Imps. Bait a charge into a wall.',
+    desc: 'Training Yard. Slams, charges and a Berserk phase that calls Imps.',
     phases: ['Champion', 'Berserk'],
     berserk: 'BERSERK!',
     wallTip: 'Charged into the wall: hit him while he is stunned!',
