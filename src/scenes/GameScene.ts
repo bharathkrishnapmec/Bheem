@@ -1,3 +1,7 @@
+import { RunSession } from '@/leaderboard/RunSession';
+import { Leaderboard } from '@/leaderboard/LeaderboardService';
+import type { RunResult, RunTicket } from '@/shared/types';
+import { trialBoard } from '@/modes/trials/trial';
 import Phaser from 'phaser';
 import type { EnemyType } from '@/core/types';
 import { Quality } from '@/platform/Quality';
@@ -10,9 +14,9 @@ import { STR } from '@/config/strings';
 import { GameEvents, type GameEventMap } from '@/core/GameEvents';
 import { ScoreSystem } from '@/systems/ScoreSystem';
 import { GameContext, type CreativeStart } from '@/modes/creative/GameContext';
-import { CreativeController, FULL_SQUAD } from '@/modes/creative/CreativeController';
+import { CreativeController, FULL_SQUAD, TRIAL_SQUAD, TRIAL_UPGRADES } from '@/modes/creative/CreativeController';
 import { CreativeStore } from '@/modes/creative/CreativeStore';
-import { bossById, phaseStartHp } from '@/modes/creative/bossRegistry';
+import { bossById } from '@/modes/creative/bossRegistry';
 import type { Actor } from '@/entities/Actor';
 import { GameStore } from '@/core/GameStore';
 import { RNG } from '@/core/RNG';
@@ -22,13 +26,14 @@ import type { DistrictId, Faction, KillType } from '@/core/types';
 import { coinLossOnDeath } from '@/logic/damage';
 import { rollDrops } from '@/logic/loot';
 import { addRally, rallyForKill } from '@/logic/summon';
-import { loadCreativeArena, loadVillage } from '@/level/LevelLoader';
+import { loadArena, loadVillage } from '@/level/LevelLoader';
+import { HazardSystem } from '@/systems/HazardSystem';
 import { LevelGeometry } from '@/level/geometry';
 import type { LevelData } from '@/level/levelSchema';
 import { AudioManager } from '@/audio/AudioManager';
 import { InputManager } from '@/input/InputManager';
 import { emptyInput } from '@/input/InputState';
-import { Parallax } from '@/fx/Parallax';
+import { Parallax, coverZoom } from '@/fx/Parallax';
 import { FX } from '@/fx/FX';
 import { CameraDirector } from '@/fx/CameraDirector';
 import { DeathFX } from '@/fx/DeathFX';
@@ -37,6 +42,10 @@ import { Player } from '@/entities/player/Player';
 import type { Enemy } from '@/entities/enemies/Enemy';
 import type { Ally } from '@/entities/allies/Ally';
 import { Kaalasura } from '@/entities/boss/Kaalasura';
+import { BruteChampion } from '@/entities/boss/BruteChampion';
+import { Nishachara } from '@/entities/boss/Nishachara';
+import type { BossBase } from '@/entities/boss/BossBase';
+import type { BossPhase } from '@/logic/boss';
 import type { Banner } from '@/entities/world/Banner';
 import { Gate } from '@/entities/world/Gate';
 import { Captive, Chest, Shrine } from '@/entities/world/Interactables';
@@ -55,7 +64,8 @@ class GameWorld implements World {
   player!: Player;
   enemies = new Set<Enemy>();
   allies = new Set<Ally>();
-  boss: Kaalasura | null = null;
+  boss: BossBase | null = null;
+  extraHostiles = new Set<Actor>();
   banners: Banner[] = [];
   interactables: Interactable[] = [];
   combat!: CombatSystem;
@@ -69,6 +79,7 @@ class GameWorld implements World {
   summon!: SummonSystem;
   cam!: CameraDirector;
   deathFx!: DeathFX;
+  hazards!: HazardSystem;
   groundGroup!: Phaser.GameObjects.Group;
   solidGroup!: Phaser.Physics.Arcade.StaticGroup;
   progress = { rescued: new Set<string>(), chests: new Set<string>(), banners: new Set<string>(), checkpointId: '' };
@@ -84,7 +95,8 @@ class GameWorld implements World {
       for (const a of this.allies) if (a.isAlive()) out.push(a);
     } else {
       for (const e of this.enemies) if (e.isAlive() && e.targetable) out.push(e);
-      if (this.boss?.isAlive()) out.push(this.boss);
+      if (this.boss?.isAlive() && this.boss.targetable) out.push(this.boss);
+      for (const a of this.extraHostiles) if (a.isAlive()) out.push(a);
     }
     return out;
   }
@@ -124,6 +136,8 @@ export class GameScene extends Phaser.Scene {
   private shrines: Shrine[] = [];
   private bossGate: Gate | null = null;
   creativeCtl: CreativeController | null = null;
+  private trialRun: RunSession | null = null;
+  private trialTicket: Promise<RunTicket> | null = null;
   private miniBoss: Actor | null = null;
   private pendingResult: Record<string, unknown> | null = null;
   private resultAt = 0;
@@ -136,6 +150,8 @@ export class GameScene extends Phaser.Scene {
   private holdTarget: Interactable | null = null;
   private promptShown = false;
   private multi = { n: 0, t: 0 };
+  /** Story boss phase checkpoint (v3 §B2.3): retry restarts at this phase with full resources. */
+  private bossRetryPhase: BossPhase | undefined;
   private dying = false;
   private cinematic = false;
   private debugText: Phaser.GameObjects.BitmapText | null = null;
@@ -146,13 +162,15 @@ export class GameScene extends Phaser.Scene {
     super('Game');
   }
 
-  create(data: { continue?: boolean; creative?: CreativeStart }): void {
+  create(data: { continue?: boolean; creative?: CreativeStart; bossPhase?: BossPhase; trial?: boolean }): void {
     const creative = !!data.creative;
-    if (data.creative) GameContext.enterCreative(data.creative);
+    this.bossRetryPhase = undefined;
+    if (data.creative && data.trial) GameContext.enterTrial(data.creative);
+    else if (data.creative) GameContext.enterCreative(data.creative);
     else GameContext.enterStory();
     this.simMs = 0;
     this.fightStartMs = -1;
-    const res = creative ? loadCreativeArena() : loadVillage();
+    const res = creative ? loadArena(data.creative?.arena) : loadVillage();
     if (!res.level) {
       pxText(this, GAME_W / 2, GAME_H / 2, `${STR.errors.level}\n${res.error ?? ''}`, 2, PAL.danger).setOrigin(0.5);
       return;
@@ -161,14 +179,14 @@ export class GameScene extends Phaser.Scene {
     const level = res.level;
     const w = (this.w = new GameWorld(this, this));
     w.level = level;
-    w.geo = new LevelGeometry(level.solids, level.oneWays);
+    w.geo = new LevelGeometry(level.solids, [...level.oneWays, ...(level.crumblingPlatforms ?? []).map((c) => c.rect), ...(level.movingPlatforms ?? []).map((m) => m.rect)]);
     const prog = !creative && data.continue ? SaveManager.get().progress : undefined;
     const totalCaptives = level.districts.reduce((n, d) => n + d.captives.length, 0);
     GameStore.reset({
       coins: prog?.coins ?? 0,
-      upgrades: creative ? CreativeController.loadout().upgrades : prog ? { ...prog.upgrades } : undefined,
-      rescued: creative ? FULL_SQUAD : (prog?.rescued.length ?? 0),
-      totalCaptives: creative ? FULL_SQUAD : totalCaptives,
+      upgrades: creative ? (data.trial ? { ...TRIAL_UPGRADES } : CreativeController.loadout().upgrades) : prog ? { ...prog.upgrades } : undefined,
+      rescued: creative ? (data.trial ? TRIAL_SQUAD : FULL_SQUAD) : (prog?.rescued.length ?? 0),
+      totalCaptives: creative ? (data.trial ? TRIAL_SQUAD : FULL_SQUAD) : totalCaptives,
       deaths: prog?.deaths ?? 0,
       playtimeMs: prog?.playtimeMs ?? 0,
       kills: prog?.kills ?? 0,
@@ -188,6 +206,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.setBoundsCollision(true, true, false, false);
     this.cameras.main.setBackgroundColor(BG_COLOR);
     this.bg = new Parallax(this, level.groundY - 380);
+    if (level.theme) this.bg.setTheme(level.theme);
     this.buildTerrain(level);
 
     w.solidGroup = this.physics.add.staticGroup();
@@ -198,6 +217,8 @@ export class GameScene extends Phaser.Scene {
 
     w.fx = new FX(this);
     w.cam = new CameraDirector(this, level.width, level.height);
+    w.cam.baseZoom = level.cameraZoom ?? 1;
+    if (w.cam.baseZoom !== 1) w.cam.zoomTo(w.cam.baseZoom, 0);
     w.tokens = new AttackTokenSystem();
     w.combat = new CombatSystem(w);
     w.proj = new Projectiles(w);
@@ -238,10 +259,15 @@ export class GameScene extends Phaser.Scene {
 
     this.physics.add.collider(w.groundGroup, w.solidGroup);
     this.physics.add.collider(w.groundGroup, oneWay, undefined, (a, p) => this.oneWayCheck(a as Actor, p as Phaser.Physics.Arcade.Image), this);
+    w.hazards = new HazardSystem(w, (a, p) => this.oneWayCheck(a as Actor, p as Phaser.Physics.Arcade.Image));
 
     this.light = this.add.rectangle(0, 0, GAME_W, GAME_H, 0x000000, 0).setOrigin(0).setScrollFactor(0).setDepth(700);
     this.weatherG = this.add.graphics().setScrollFactor(0).setDepth(690);
     this.fog = this.add.tileSprite(0, 0, GAME_W, GAME_H, 'noise').setOrigin(0).setScrollFactor(0).setDepth(689).setAlpha(0).setTint(0xb8a8d8).setTileScale(24);
+    if (w.cam.baseZoom !== 1) {
+      this.bg.fitZoom(w.cam.baseZoom);
+      for (const o of [this.light, this.weatherG, this.fog]) coverZoom(o, w.cam.baseZoom);
+    }
     this.updateLighting(true);
 
     w.cam.follow(w.player);
@@ -260,6 +286,12 @@ export class GameScene extends Phaser.Scene {
     this.scene.bringToTop('UI');
     GameStore.markAll();
     AudioManager.setMusic('explore');
+    if (!creative && data.bossPhase) {
+      w.player.setPosition(ba.x0 + 220, ba.bossSpawn.y - 1);
+      w.player.body.reset(ba.x0 + 220, ba.bossSpawn.y - 1);
+      w.cam.snap();
+      this.startBoss({ skipIntro: true, phase: data.bossPhase });
+    }
     this.cameras.main.fadeIn(500, 0, 0, 0);
     if (!prog && !creative) this.time.delayedCall(300, () => GameEvents.emit('intro:card', { title: STR.intro.title, subtitle: STR.intro.subtitle, durationMs: 2600 }));
 
@@ -274,6 +306,16 @@ export class GameScene extends Phaser.Scene {
     GameEvents.on('app:background', onBackground);
     const score = new ScoreSystem(() => ({ x: this.w.player.x, y: this.w.player.y - 70 }), !creative);
     this.creativeCtl = creative ? new CreativeController(w, level.playerStart) : null;
+    this.trialRun = null;
+    this.trialTicket = null;
+    if (GameContext.trial && GameContext.start?.kind === 'boss') {
+      const board = trialBoard(GameContext.start.bossId);
+      const run = (this.trialRun = new RunSession(board, performance.now()));
+      this.trialTicket = Leaderboard.startRun(board);
+      const vis = () => run.setHidden(document.hidden, performance.now());
+      document.addEventListener('visibilitychange', vis);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => document.removeEventListener('visibilitychange', vis));
+    }
     if (creative) TimeController.setBaseScale(GameContext.slowMo);
     const onPhase = () => this.updateLighting();
     GameEvents.on('boss:phase', onPhase);
@@ -285,6 +327,7 @@ export class GameScene extends Phaser.Scene {
       GameEvents.off('ui:intent', onRetry);
       GameEvents.off('app:background', onBackground);
       score.destroy();
+      this.w.hazards?.destroy();
       GameEvents.off('boss:phase', onPhase);
       this.creativeCtl?.destroy();
       this.creativeCtl = null;
@@ -337,12 +380,14 @@ export class GameScene extends Phaser.Scene {
 
   private buildTerrain(level: LevelData): void {
     const stoneFrom = level.districts.find((d) => d.id === 'temple')?.bounds.x0 ?? 1e9;
+    const theme = level.theme === 'forge' ? ['tile_basaltTop', 'tile_basalt'] : level.theme === 'sky' ? ['tile_skyTop', 'tile_skyStone'] : null;
     for (const r of level.solids) {
       const stone = r.x >= stoneFrom;
-      this.add.tileSprite(r.x, r.y, r.w, Math.min(16, r.h), stone ? 'tile_stoneTop' : 'tile_grass').setOrigin(0).setDepth(20);
-      if (r.h > 16) this.add.tileSprite(r.x, r.y + 16, r.w, r.h - 16, stone ? 'tile_stone' : 'tile_dirt').setOrigin(0).setDepth(19);
+      const [top, body] = theme ?? (stone ? ['tile_stoneTop', 'tile_stone'] : ['tile_grass', 'tile_dirt']);
+      this.add.tileSprite(r.x, r.y, r.w, Math.min(16, r.h), top!).setOrigin(0).setDepth(20);
+      if (r.h > 16) this.add.tileSprite(r.x, r.y + 16, r.w, r.h - 16, body!).setOrigin(0).setDepth(19);
     }
-    for (const r of level.oneWays) this.add.tileSprite(r.x, r.y, r.w, 12, 'tile_plank').setOrigin(0).setDepth(21);
+    for (const r of level.oneWays) this.add.tileSprite(r.x, r.y, r.w, 12, theme ? theme[0]! : 'tile_plank').setOrigin(0).setDepth(21);
     for (const h of level.hazards ?? []) this.add.tileSprite(h.x, h.y + h.h - 16, h.w, 16, 'tile_spikes').setOrigin(0).setDepth(22);
     for (const d of level.districts)
       for (const a of d.ambient) {
@@ -358,7 +403,7 @@ export class GameScene extends Phaser.Scene {
     const L = this.w.level.lighting;
     const d = this.w.districts?.current();
     let preset = L.occupied;
-    if (this.bossStage === 'fight' && this.w.boss?.phase === 3) preset = L.bossP3;
+    if (this.bossStage === 'fight' && (this.w.boss?.phase ?? 0) >= 3) preset = L.bossP3;
     else if (GameContext.creative || (d && this.w.districts.isLiberated(d.id))) preset = L.liberated;
     this.lightTarget = { color: parseInt(preset.tint.replace('#', ''), 16), alpha: preset.alpha };
     if (instant) this.light.setFillStyle(this.lightTarget.color, this.lightTarget.alpha);
@@ -429,6 +474,10 @@ export class GameScene extends Phaser.Scene {
     this.dying = true;
     const w = this.w;
     AudioManager.play('playerDeath');
+    if (this.creativeCtl && GameContext.trial) {
+      GameEvents.emit('fx:desaturate', { amount: 1, ms: 600 });
+      return this.finishTrial(false, 900);
+    }
     if (this.creativeCtl) {
       GameEvents.emit('fx:desaturate', { amount: 1, ms: 600 });
       this.time.delayedCall(900, () => {
@@ -450,8 +499,9 @@ export class GameScene extends Phaser.Scene {
       GameStore.state.deaths++;
       GameStore.flush();
       this.save();
+      this.bossRetryPhase = this.bossStage === 'fight' && w.boss?.isAlive() ? w.boss.phase : undefined;
       this.scene.pause();
-      this.scene.launch('GameOver', { coinLoss: loss });
+      this.scene.launch('GameOver', { coinLoss: loss, checkpointPhase: this.bossRetryPhase });
     });
   }
 
@@ -467,10 +517,10 @@ export class GameScene extends Phaser.Scene {
   private retry(): void {
     this.scene.stop('Pause');
     this.scene.stop('GameOver');
-    this.scene.start('Game', GameContext.creative && GameContext.start ? { creative: GameContext.start } : { continue: true });
+    this.scene.start('Game', (GameContext.creative || GameContext.trial) && GameContext.start ? { creative: GameContext.start, trial: GameContext.trial } : { continue: true, bossPhase: this.bossRetryPhase });
   }
 
-  private startBoss(opts: { skipIntro?: boolean; phase?: 1 | 2 | 3 } = {}): void {
+  private startBoss(opts: { skipIntro?: boolean; phase?: 1 | 2 | 3 | 4; make?: (w: World, x: number, y: number) => BossBase } = {}): void {
     const w = this.w;
     const ba = w.level.bossArena;
     this.bossStage = 'intro';
@@ -478,8 +528,9 @@ export class GameScene extends Phaser.Scene {
     w.summon.dismissAll();
     w.cam.setBounds({ x0: ba.x0, x1: ba.x1 });
     AudioManager.setMusic('boss');
-    const boss = (w.boss = new Kaalasura(w, ba.bossSpawn.x, ba.bossSpawn.y - 1));
-    w.groundGroup.add(boss);
+    const make = opts.make ?? ((ww: World, x: number, y: number) => new Kaalasura(ww, x, y));
+    const boss = (w.boss = make(w, ba.bossSpawn.x, ba.bossSpawn.y - 1));
+    if (!boss.flying) w.groundGroup.add(boss);
     boss.onDefeated = () => this.bossDefeated();
     if (opts.skipIntro) {
       this.time.delayedCall(250, () => this.beginBossFight(boss, opts.phase ?? 1));
@@ -488,7 +539,7 @@ export class GameScene extends Phaser.Scene {
     w.player.lock(true);
     this.cinematic = true;
     w.cam.focusOn(boss.x, boss.cy, 1.15, 500);
-    GameEvents.emit('intro:card', { title: STR.boss.name, subtitle: STR.boss.title, durationMs: balance.boss.introMs });
+    GameEvents.emit('intro:card', { title: boss.displayName, subtitle: boss.displayTitle, durationMs: balance.boss.introMs });
     AudioManager.play('roar');
     this.time.delayedCall(700, () => w.cam.shake(8, 900));
     this.time.delayedCall(balance.boss.introMs, () => {
@@ -497,18 +548,13 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private beginBossFight(boss: Kaalasura, phase: 1 | 2 | 3): void {
+  private beginBossFight(boss: BossBase, phase: 1 | 2 | 3 | 4): void {
     if (this.w.boss !== boss || !boss.active) return;
     this.w.player.lock(false);
     this.cinematic = false;
     this.bossStage = 'fight';
     boss.beginFight();
-    if (phase > 1) {
-      boss.hp = phaseStartHp(boss.maxHp, phase);
-      boss.phase = phase;
-      GameStore.setBoss(boss.hp, boss.maxHp, phase);
-      GameEvents.emit('boss:phase', { phase });
-    }
+    if (phase > 1) boss.startAtPhase(phase);
     if (this.creativeCtl) {
       if (GameContext.start?.allies === 'auto') this.creativeCtl.summonSquad();
       this.creativeCtl.fighting = true;
@@ -523,7 +569,8 @@ export class GameScene extends Phaser.Scene {
     if (!cs || cs.kind !== 'boss' || !ctl) return;
     const entry = bossById(cs.bossId);
     ctl.resetStats();
-    if (entry.id === 'kaalasura') return this.startBoss({ skipIntro: cs.skipIntro !== false, phase: cs.phase ?? 1 });
+    if (entry.boss) return this.startBoss({ skipIntro: cs.skipIntro !== false, phase: (Math.min(cs.phase ?? 1, entry.phases) || 1) as 1 | 2 | 3 | 4, make: entry.boss });
+    if (!entry.factory) return;
     const ba = this.w.level.bossArena;
     const fight = entry.factory(this.w, ba.bossSpawn.x, ba.bossSpawn.y - 1);
     this.miniBoss = fight.actor;
@@ -551,6 +598,7 @@ export class GameScene extends Phaser.Scene {
   private finishCreativeFight(delayMs: number): void {
     const ctl = this.creativeCtl;
     if (!ctl) return;
+    if (GameContext.trial) return this.finishTrial(true, delayMs);
     ctl.fighting = false;
     const bossId = bossById(GameContext.start?.bossId).id;
     const stats = { ...ctl.stats };
@@ -558,6 +606,27 @@ export class GameScene extends Phaser.Scene {
     this.pendingResult = { ...stats, bossId, newBest };
     this.resultAt = this.time.now;
     this.time.delayedCall(delayMs, () => this.showCreativeResult());
+  }
+
+  /** Trial end: the clock already stopped at the killing blow (or death); local best is recorded, global submit is opt-in. */
+  private finishTrial(won: boolean, delayMs: number): void {
+    const ctl = this.creativeCtl;
+    const run = this.trialRun;
+    const ticket = this.trialTicket;
+    if (!ctl || !run || !ticket) return;
+    ctl.fighting = false;
+    this.trialRun = null;
+    const flags = run.check({ mode: GameContext.mode, modifiers: GameContext.modifiers as unknown as Record<string, unknown>, search: location.search, balanceOverride: false }, performance.now());
+    const result: RunResult = { mode: 'trial', timeMs: Math.round(ctl.stats.timeMs), hitsTaken: ctl.stats.hitsTaken };
+    const tainted = flags.length > 0;
+    const local = won ? ticket.then((t) => Leaderboard.local.submit(t, result, Leaderboard.name, tainted)) : null;
+    const data = { won, board: run.board, result, tainted, ticket, local };
+    this.time.delayedCall(delayMs, () => {
+      this.cinematic = false;
+      this.w.player.lock(false);
+      this.scene.pause();
+      this.scene.launch('TrialResult', data);
+    });
   }
 
   private skipCreativeResult(): void {
@@ -643,7 +712,7 @@ export class GameScene extends Phaser.Scene {
     TimeController.slowMo(0.25, 1600, 60);
     w.cam.focusOn(boss.x, boss.cy, 1.5, 300);
     w.fx.flash(0xffffff, 0.8, 150);
-    boss.anims.play('boss:kneel');
+    boss.anim('kneel', false);
     const R = this.reducedFx();
     const bursts = R ? 3 : 8;
     for (let i = 0; i < bursts; i++)
@@ -705,9 +774,11 @@ export class GameScene extends Phaser.Scene {
     if (st.pausePressed && this.openPause()) return;
     if (this.creativeCtl) {
       if (this.pendingResult && this.time.now - this.resultAt > 400 && (st.attackPressed || st.confirm || st.jumpPressed)) return this.skipCreativeResult();
-      if (st.resetPressed) this.creativeReset();
-      if (st.toolboxPressed && this.openToolbox()) return;
-      if (st.bossSelectPressed) return this.openBossSelect();
+      if (!GameContext.trial) {
+        if (st.resetPressed) this.creativeReset();
+        if (st.toolboxPressed && this.openToolbox()) return;
+        if (st.bossSelectPressed) return this.openBossSelect();
+      }
     }
     const p = w.player;
     p.in = this.cinematic || this.dying ? emptyInput() : st;
@@ -724,6 +795,7 @@ export class GameScene extends Phaser.Scene {
       if (e.isAlive()) e.step(dt);
     }
     if (w.boss?.active && w.boss.isAlive()) w.boss.step(dt);
+    for (const a of [...w.extraHostiles]) if (a.active && a.isAlive()) a.step(dt);
     w.proj.update(dt);
     w.loot.update(dt);
     w.spawner.update(dt);
@@ -736,6 +808,7 @@ export class GameScene extends Phaser.Scene {
     this.multi.t -= realDt;
 
     // hazards & pits
+    if (!this.dying) w.hazards.update(dt);
     if (!p.dead && !this.dying) {
       if (p.y > w.level.height + 60) {
         w.combat.hit(p, { amount: balance.world.hazardDamage * 2, kind: 'contact', faction: 'neutral', dirX: 0, knockback: 0, poise: 0, ignoreIFrames: true, noHitStop: true });
@@ -856,7 +929,7 @@ export class GameScene extends Phaser.Scene {
         `enemies ${alive}/${balance.world.activeEnemyCap} tokens ${w.tokens.inUse} allies ${w.allies.size}`,
         `proj ${w.proj.list.length} loot ${w.loot.items.length}`,
         `district ${w.districts.current()?.id ?? '-'} ${w.districts.current() ? w.districts.states[w.districts.current()!.id] : ''}`,
-        `boss ${this.bossStage} ${w.boss ? `${Math.ceil(w.boss.hp)} p${w.boss.phase} ${w.boss.st}` : ''}`,
+        `boss ${this.bossStage} ${w.boss ? `${Math.ceil(w.boss.hp)} p${w.boss.phase} ${w.boss.currentAttack} g${Math.round(w.boss.guard.guard)}` : ''}`,
         'F3 debug  F4 kill all  F6 warp',
       ].join('\n'),
     );
@@ -872,6 +945,14 @@ export class GameScene extends Phaser.Scene {
     const w = this.w;
     (window as unknown as { __BHEEM__: unknown }).__BHEEM__ = {
       scene: 'Game',
+      arena: () => ({ id: w.level.arenaId ?? 'village', zoom: w.cam.baseZoom, crumbles: w.hazards.crumbles.map((c) => c.c.state), movers: w.hazards.movers.length, gust: w.hazards.gustActive }),
+      setPlayer: (x: number, y: number) => {
+        w.player.setPosition(x, y);
+        w.player.body.reset(x, y);
+        w.player.body.setVelocity(0, 0);
+      },
+      spawnAt: (type: EnemyType, x: number, y: number, elite = false) => !!w.spawner.spawnEnemy(type, x, y, { aggro: true, required: false, elite }),
+      gust: (dir: 1 | -1) => w.hazards.startGust(dir),
       player: () => ({ x: w.player.x, y: w.player.y, hp: w.player.hp, st: w.player.st, weapon: w.player.weapon, ammo: w.player.ammo, prana: w.player.prana }),
       spawn: (type: EnemyType, dx: number) => (w.spawner.spawnEnemy(type, w.player.x + dx, w.player.y, { aggro: true, required: false }) ? true : false),
       enemyHp: () => [...w.enemies].filter((e) => e.isAlive()).map((e) => e.hp),
@@ -901,7 +982,33 @@ export class GameScene extends Phaser.Scene {
       tokens: () => ({ inUse: w.tokens.inUse, capacity: w.tokens.capacity }),
       enemies: () => [...w.enemies].filter((e) => e.isAlive()).length,
       district: () => w.districts.current()?.id ?? null,
-      boss: () => (w.boss ? { hp: w.boss.hp, phase: w.boss.phase } : null),
+      boss: () =>
+        w.boss
+          ? {
+              hp: w.boss.hp,
+              max: w.boss.maxHp,
+              phase: w.boss.phase,
+              attack: w.boss.currentAttack,
+              st: (w.boss as unknown as { st?: string }).st,
+              invuln: Math.round(w.boss.invulnMs),
+              guard: w.boss.guard.snapshot(w.now),
+              crates: w.boss.cratesOnField,
+              fightMs: Math.round(w.boss.fightMs),
+              hellfire: w.boss instanceof Kaalasura ? w.boss.hellfireOn : false,
+              banners: w.boss instanceof Kaalasura ? w.boss.bannerCount : 0,
+              x: Math.round(w.boss.x),
+              y: Math.round(w.boss.y),
+              clones: w.boss instanceof Nishachara ? w.boss.cloneCount : 0,
+              veiled: w.boss instanceof Nishachara ? w.boss.veiled : false,
+              lavaRise: w.hazards.lavaRise,
+        berserk: w.boss instanceof BruteChampion ? w.boss.berserk : false,
+        imps: w.boss instanceof BruteChampion ? w.boss.impCount : 0,
+            }
+          : null,
+      guardHit: (n: number) => w.boss?.guardHit(n),
+      bossFightMs: (ms: number) => {
+        w.boss?.debugAdvance(ms);
+      },
       warp: (x: number) => {
         w.player.setPosition(x, w.player.y - 300);
         w.player.body.reset(x, w.player.y - 300);

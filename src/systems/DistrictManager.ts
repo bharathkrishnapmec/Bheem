@@ -81,7 +81,7 @@ export class DistrictManager {
     }
     if (!d) {
       this.cur = null;
-      if (px >= w.level.bossArena.x0 - 200) this.setObjective(w.boss ? STR.objectives.boss : STR.objectives.arena);
+      if (px >= w.level.bossArena.x0 - 200) this.setObjective(w.boss ? STR.objectives.boss((w.boss as { displayName?: string }).displayName ?? 'KAALASURA') : STR.objectives.arena);
       return;
     }
     const st = this.states[d.id];

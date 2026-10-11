@@ -125,6 +125,25 @@ export class DeathFX {
         finish(D.genericDissolveDelayMs);
         break;
       }
+      case 'lava': {
+        // ignite, char to black, crumble to rising ash + steam
+        a.body.setVelocity(0, 30);
+        a.body.setAllowGravity(false);
+        a.setTintFill(0xff8030);
+        scene.time.delayedCall(60, () => a.active && a.setTint(0x1a1010));
+        w.fx.burst(a.cx, a.y, 14, [0xff8030, 0xffd060, 0x401010], { speed: 200, g: 300, life: 500 });
+        w.fx.embers(a.cx, a.cy, 12, 0xff8030);
+        scene.tweens.add({ targets: a, alpha: 0, y: a.y + 18, delay: D.lavaCharMs, duration: 350, onComplete: () => a.destroy() });
+        break;
+      }
+      case 'void': {
+        // tumble into the clouds; the camera never follows
+        const dir = a.lastAttacker ? Math.sign(a.x - a.lastAttacker.x) || 1 : 1;
+        a.body.enable = false;
+        scene.tweens.add({ targets: a, angle: dir * D.voidSpinDegPerSec * 1.2, scale: 0.3, y: a.y + 260, alpha: 0, duration: 1200, onComplete: () => a.destroy() });
+        w.fx.ring(a.x, a.y + 140, 0xe8ecff, 6, 600);
+        break;
+      }
       default: {
         const dir = a.lastAttacker ? Math.sign(a.x - a.lastAttacker.x) || 1 : 1;
         a.body.setVelocity(dir * 160, -260);

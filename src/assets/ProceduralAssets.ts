@@ -109,7 +109,14 @@ export function assetSteps(scene: Scene): { label: string; run: () => void }[] {
         buildSheet(scene, 'imp', S.impSheet());
       },
     },
-    { label: 'boss', run: () => buildSheet(scene, 'boss', S.bossSheet()) },
+    {
+      label: 'boss',
+      run: () => {
+        buildSheet(scene, 'boss', S.bossSheet());
+        buildSheet(scene, 'garjana', S.garjanaSheet());
+        buildSheet(scene, 'nishachara', S.nishacharaSheet());
+      },
+    },
     {
       label: 'allies',
       run: () => {

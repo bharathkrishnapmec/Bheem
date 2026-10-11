@@ -1,3 +1,5 @@
+import { ARENA_IDS } from '@/level/LevelLoader';
+import type { ArenaId } from '@/level/levelSchema';
 import Phaser from 'phaser';
 import { GAME_H, GAME_W } from '@/config/gameConfig';
 import { PAL } from '@/config/palette';
@@ -9,7 +11,8 @@ import { InputManager } from '@/input/InputManager';
 import { pxText } from '@/ui/text';
 import { MenuList, drawPanel, type MenuItem } from '@/ui/widgets';
 import { TouchControls } from '@/ui/touch/TouchControls';
-import { GameContext, type CreativeStart } from './GameContext';
+import { balance } from '@/config/balance';
+import { GameContext, effectiveBossStrength, stepMul, type BossPreset, type BossStrength, type CreativeStart } from './GameContext';
 import { CreativeStore } from './CreativeStore';
 import { bossRegistry } from './bossRegistry';
 import type { CreativeController } from './CreativeController';
@@ -25,7 +28,7 @@ const fmt = (ms: number | null): string => {
 };
 const cycle = <T>(list: readonly T[], v: T, d: number): T => list[(list.indexOf(v) + d + list.length) % list.length]!;
 
-abstract class MenuScene extends Phaser.Scene {
+export abstract class MenuScene extends Phaser.Scene {
   protected inp!: InputManager;
   protected menu!: MenuList;
   protected backdrop(): void {
@@ -56,6 +59,7 @@ abstract class MenuScene extends Phaser.Scene {
 
 /** Main Menu -> Creative Mode hub. */
 export class CreativeMenuScene extends MenuScene {
+  private arena: ArenaId = GameContext.start?.kind === 'sandbox' ? (GameContext.start.arena ?? 'training_yard') : 'training_yard';
   constructor() {
     super('CreativeMenu');
   }
@@ -69,7 +73,13 @@ export class CreativeMenuScene extends MenuScene {
       GAME_W / 2,
       220,
       [
-        { label: () => STR.creative.sandbox, onConfirm: () => this.startCreative({ kind: 'sandbox' }) },
+        {
+          label: () => STR.creative.sandboxArena,
+          value: () => `< ${STR.arena.names[this.arena]} >`,
+          onConfirm: () => this.startCreative({ kind: 'sandbox', arena: this.arena }),
+          onLeft: () => (this.arena = cycle(ARENA_IDS, this.arena, -1)),
+          onRight: () => (this.arena = cycle(ARENA_IDS, this.arena, 1)),
+        },
         { label: () => STR.creative.bossSelect, onConfirm: () => this.scene.start('BossSelect') },
         { label: () => STR.creative.back, onConfirm: () => this.onBack() },
       ],
@@ -84,9 +94,13 @@ export class CreativeMenuScene extends MenuScene {
 }
 
 /** Boss cards generated from bossRegistry plus fight options. */
+const PRESETS: readonly BossPreset[] = ['classic', 'normal', 'legendary'];
+const CS = balance.bosses.creative;
+const phaseList = (n: number): readonly (1 | 2 | 3 | 4)[] => ([1, 2, 3, 4] as const).slice(0, Math.max(1, n));
+
 export class BossSelectScene extends MenuScene {
   private sel = 0;
-  private phase: 1 | 2 | 3 = 1;
+  private phase: 1 | 2 | 3 | 4 = 1;
   private allies: 'none' | 'auto' = 'none';
   private skipIntro = true;
   private card!: Phaser.GameObjects.Container;
@@ -112,9 +126,9 @@ export class BossSelectScene extends MenuScene {
       {
         label: () => STR.creative.startPhase,
         value: () => `< ${Math.min(this.phase, boss().phases)} >`,
-        onLeft: () => (this.phase = cycle([1, 2, 3] as const, this.phase, -1)),
-        onRight: () => (this.phase = cycle([1, 2, 3] as const, this.phase, 1)),
-        onConfirm: () => (this.phase = cycle([1, 2, 3] as const, this.phase, 1)),
+        onLeft: () => (this.phase = cycle(phaseList(boss().phases), this.phase, -1)),
+        onRight: () => (this.phase = cycle(phaseList(boss().phases), this.phase, 1)),
+        onConfirm: () => (this.phase = cycle(phaseList(boss().phases), this.phase, 1)),
         enabled: () => boss().phases > 1,
       },
       {
@@ -131,50 +145,80 @@ export class BossSelectScene extends MenuScene {
         onRight: () => (this.skipIntro = !this.skipIntro),
         onConfirm: () => (this.skipIntro = !this.skipIntro),
       },
+      {
+        label: () => STR.creative.bossStrength,
+        value: () => `< ${STR.creative.presets[GameContext.bossStrength.preset]} >`,
+        onLeft: () => this.setStrength({ preset: cycle(PRESETS, GameContext.bossStrength.preset, -1) }),
+        onRight: () => this.setStrength({ preset: cycle(PRESETS, GameContext.bossStrength.preset, 1) }),
+        onConfirm: () => this.setStrength({ preset: cycle(PRESETS, GameContext.bossStrength.preset, 1) }),
+      },
+      {
+        label: () => STR.creative.bossHp,
+        value: () => `< ${STR.creative.mul(GameContext.bossStrength.hpMul)} >`,
+        onLeft: () => this.setStrength({ hpMul: stepMul(GameContext.bossStrength.hpMul, -1, CS.hpMulMin, CS.hpMulMax, CS.step) }),
+        onRight: () => this.setStrength({ hpMul: stepMul(GameContext.bossStrength.hpMul, 1, CS.hpMulMin, CS.hpMulMax, CS.step) }),
+        onConfirm: () => this.setStrength({ hpMul: stepMul(GameContext.bossStrength.hpMul, 1, CS.hpMulMin, CS.hpMulMax, CS.step) }),
+      },
+      {
+        label: () => STR.creative.bossDmg,
+        value: () => `< ${STR.creative.mul(GameContext.bossStrength.dmgMul)} >`,
+        onLeft: () => this.setStrength({ dmgMul: stepMul(GameContext.bossStrength.dmgMul, -1, CS.dmgMulMin, CS.dmgMulMax, CS.step) }),
+        onRight: () => this.setStrength({ dmgMul: stepMul(GameContext.bossStrength.dmgMul, 1, CS.dmgMulMin, CS.dmgMulMax, CS.step) }),
+        onConfirm: () => this.setStrength({ dmgMul: stepMul(GameContext.bossStrength.dmgMul, 1, CS.dmgMulMin, CS.dmgMulMax, CS.step) }),
+      },
       { label: () => STR.creative.fight, onConfirm: () => this.fight() },
       { label: () => STR.creative.back, onConfirm: () => this.onBack() },
     ];
-    this.menu = new MenuList(this, GAME_W / 2, 300, items, { width: 520, spacing: 34, scale: 2 });
+    this.menu = new MenuList(this, GAME_W / 2, 300, items, { width: 520, spacing: 26, scale: 2 });
     this.setupInput();
     setSceneName('BossSelect');
+  }
+  private setStrength(p: Partial<BossStrength>): void {
+    GameContext.bossStrength = { ...GameContext.bossStrength, ...p };
+    this.drawCards();
   }
   private pick(d: number): void {
     this.sel = (this.sel + d + bossRegistry.length) % bossRegistry.length;
     this.drawCards();
+    this.menu?.refresh();
   }
   private drawCards(): void {
     this.card.removeAll(true);
     const n = bossRegistry.length;
-    const cw = 300;
     const gap = 24;
+    const cw = Math.min(300, Math.floor((GAME_W - 32 - (n - 1) * gap) / n));
+    const compact = cw < 280;
+    const ch = compact ? 216 : 196;
     const x0 = GAME_W / 2 - (n * cw + (n - 1) * gap) / 2;
     bossRegistry.forEach((b, i) => {
       const x = x0 + i * (cw + gap);
       const on = i === this.sel;
       const g = this.add.graphics();
-      drawPanel(g, x, 74, cw, 196, { alpha: on ? 0.98 : 0.7, trim: on ? PAL.cleanseGold : undefined });
-      const thumb = this.add.image(x + 54, 220, b.thumbnailKey, 0).setOrigin(0.5, 1);
-      thumb.setScale(Math.min(1, 96 / Math.max(thumb.height, 1))).setAlpha(on ? 1 : 0.6);
-      const zone = this.add.zone(x, 74, cw, 196).setOrigin(0).setInteractive({ useHandCursor: true });
+      drawPanel(g, x, 74, cw, ch, { alpha: on ? 0.98 : 0.7, trim: on ? PAL.cleanseGold : undefined });
+      const thumb = this.add.image(compact ? x + cw / 2 : x + 54, compact ? 126 : 220, b.thumbnailKey, 0).setOrigin(0.5, 1);
+      thumb.setScale(Math.min(1, (compact ? 50 : 96) / Math.max(thumb.height, 1))).setAlpha(on ? 1 : 0.6);
+      const zone = this.add.zone(x, 74, cw, ch).setOrigin(0).setInteractive({ useHandCursor: true });
       zone.on('pointerdown', () => {
         if (this.sel === i) this.fight();
         else this.pick(i - this.sel);
       });
+      const tx = compact ? x + 10 : x + 110;
+      const ty = compact ? 130 : 88;
       this.card.add([
         g,
         thumb,
-        pxText(this, x + 110, 88, b.name, b.name.length > 10 ? 1.5 : 2, on ? PAL.cleanseGold : 0xc8c0d8),
-        pxText(this, x + 110, 110, b.title, 1, PAL.statusCyan),
-        pxText(this, x + 110, 130, `${STR.creative.hp} ${b.hp}   ${STR.creative.phases} ${b.phases}`, 1, 0xffffff),
-        pxText(this, x + 110, 146, `${STR.creative.bestTime} ${fmt(CreativeStore.bestTime(b.id))}`, 1, PAL.cleanseGold),
-        pxText(this, x + 110, 166, b.description, 1, 0xd8d0e8).setMaxWidth(cw - 122),
+        pxText(this, tx, ty, b.name, b.name.length > 10 ? 1.5 : 2, on ? PAL.cleanseGold : 0xc8c0d8),
+        pxText(this, tx, ty + (compact ? 18 : 22), b.title, 1, PAL.statusCyan),
+        pxText(this, tx, ty + (compact ? 32 : 42), `${STR.creative.hp} ${Math.max(1, Math.round(b.hp * effectiveBossStrength().hpMul))}   ${STR.creative.phases} ${b.phases}`, 1, 0xffffff),
+        pxText(this, tx, ty + (compact ? 44 : 58), `${STR.creative.bestTime} ${fmt(CreativeStore.bestTime(b.id))}  ${b.estimate}`, 1, PAL.cleanseGold),
+        pxText(this, tx, ty + (compact ? 58 : 78), b.description, 1, 0xd8d0e8).setMaxWidth(compact ? cw - 20 : cw - 122),
         zone,
       ]);
     });
   }
   private fight(): void {
     const b = bossRegistry[this.sel]!;
-    this.startCreative({ kind: 'boss', bossId: b.id, phase: b.phases > 1 ? this.phase : 1, allies: this.allies, skipIntro: this.skipIntro });
+    this.startCreative({ kind: 'boss', bossId: b.id, arena: b.arenas[0], phase: (b.phases > 1 ? Math.min(this.phase, b.phases) : 1) as 1 | 2 | 3 | 4, allies: this.allies, skipIntro: this.skipIntro });
   }
   protected onBack(): void {
     this.scene.start('CreativeMenu');
@@ -208,6 +252,13 @@ export class ToolboxScene extends MenuScene {
     const slow = [1, 0.5, 0.25] as const;
     const items: MenuItem[] = [
       toggle(STR.creative.god, 'godMode'),
+      {
+        label: () => STR.creative.hazards,
+        value: () => (m.hazardsPaused ? STR.creative.paused : STR.creative.on),
+        onConfirm: () => (m.hazardsPaused = !m.hazardsPaused),
+        onLeft: () => (m.hazardsPaused = !m.hazardsPaused),
+        onRight: () => (m.hazardsPaused = !m.hazardsPaused),
+      },
       toggle(STR.creative.infPrana, 'infinitePrana'),
       toggle(STR.creative.infArrows, 'infiniteArrows'),
       toggle(STR.creative.instantRally, 'instantRally'),
@@ -312,7 +363,7 @@ export class CreativeResultScene extends MenuScene {
           },
         },
         { label: () => STR.creative.bossSelect, onConfirm: () => (this.scene.stop(), game().openBossSelect()) },
-        { label: () => STR.creative.sandbox, onConfirm: () => this.startCreative({ kind: 'sandbox' }) },
+        { label: () => STR.creative.sandbox, onConfirm: () => this.startCreative({ kind: 'sandbox', arena: GameContext.start?.arena }) },
         { label: () => STR.pause.quit, onConfirm: () => this.onBack() },
       ],
       { width: 320, spacing: 44, scale: 2 },

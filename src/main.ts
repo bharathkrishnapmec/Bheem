@@ -10,6 +10,8 @@ import { GameScene } from '@/scenes/GameScene';
 import { UIScene } from '@/scenes/UIScene';
 import { PauseScene, GameOverScene, VictoryScene, ShrineScene } from '@/scenes/OverlayScenes';
 import { BossSelectScene, CreativeMenuScene, CreativeResultScene, ToolboxScene } from '@/modes/creative/scenes';
+import { LeaderboardScene, TrialResultScene, TrialsScene } from '@/modes/trials/scenes';
+import { Leaderboard } from '@/leaderboard/LeaderboardService';
 import { installLifecycle } from '@/platform/lifecycle';
 import { TouchControls } from '@/ui/touch/TouchControls';
 
@@ -49,9 +51,12 @@ else {
       default: 'arcade',
       arcade: { gravity: { x: 0, y: balance.player.gravity }, fps: 60, tileBias: 24, debug: false },
     },
-    scene: [BootScene, PreloadScene, MainMenuScene, SettingsScene, GameScene, UIScene, PauseScene, GameOverScene, VictoryScene, ShrineScene, CreativeMenuScene, BossSelectScene, ToolboxScene, CreativeResultScene],
+    scene: [BootScene, PreloadScene, MainMenuScene, SettingsScene, GameScene, UIScene, PauseScene, GameOverScene, VictoryScene, ShrineScene, CreativeMenuScene, BossSelectScene, ToolboxScene, CreativeResultScene, TrialsScene, TrialResultScene, LeaderboardScene],
   });
   (window as unknown as { __GAME__: Phaser.Game }).__GAME__ = game;
   installLifecycle();
   TouchControls.mount();
 }
+
+void Leaderboard.flush();
+window.addEventListener('online', () => void Leaderboard.flush());

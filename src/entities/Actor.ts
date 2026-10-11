@@ -21,6 +21,8 @@ export abstract class Actor extends Phaser.Physics.Arcade.Sprite implements Stat
   poise = 10;
   private poiseT = 0;
   kbResist = 0;
+  /** Aura speed buff (Kaalasura Warbanner). */
+  buffSpeedMul = 1;
   statuses = new Map<StatusId, ActiveStatus>();
   stunImmune = false;
   small = false;
@@ -93,8 +95,13 @@ export abstract class Actor extends Phaser.Physics.Arcade.Sprite implements Stat
   canAct(): boolean {
     return !this.dead && this.staggerMs <= 0 && StatusEffectSystem.canAct(this);
   }
+  /** Final say on incoming HP damage (e.g. a boss that must survive into its Last Stand). */
+  limitDamage(dmg: number): number {
+    return dmg;
+  }
+
   speedMul(): number {
-    return StatusEffectSystem.speedMultiplier(this);
+    return StatusEffectSystem.speedMultiplier(this) * this.buffSpeedMul;
   }
   /** Extra damage multiplier applied by the target (boss shield, punish windows...). */
   damageTakenMul(_hit: HitInfo): number {

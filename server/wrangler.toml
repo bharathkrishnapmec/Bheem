@@ -1,0 +1,16 @@
+name = "bheem-leaderboard"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+tsconfig = "tsconfig.json"
+
+[vars]
+ALLOWED_ORIGINS = "https://bheem.vercel.app"
+BUILD_VERSIONS = "1.1"
+VERSION = "1.1"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bheem"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# Secrets (never committed): wrangler secret put RUN_TOKEN_SECRET

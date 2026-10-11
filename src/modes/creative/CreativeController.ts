@@ -12,18 +12,23 @@ import { TrainingDummy } from './TrainingDummy';
 
 export const MAX_UPGRADES = { might: 3, vitality: 3, quiver: 2, prana: 3, rally: 3 } as const;
 export const FULL_SQUAD = 12;
+/** Trials loadout: every upgrade at balance.trials.loadoutTier (1). */
+export const TRIAL_UPGRADES = { might: 1, vitality: 1, quiver: 1, prana: 1, rally: 1 };
+/** Trials base squad: 2 Spearmen + 1 Archer. */
+export const TRIAL_SQUAD = 3;
 
 export interface FightStats {
   timeMs: number;
   damageTaken: number;
   hitsLanded: number;
+  hitsTaken: number;
 }
 
 type QueuedSpawn = { type: EnemyType | 'dummy'; dx: number };
 
 /** Creative-only tooling layered on the shared Story systems. Never touches Story saves. */
 export class CreativeController {
-  stats: FightStats = { timeMs: 0, damageTaken: 0, hitsLanded: 0 };
+  stats: FightStats = { timeMs: 0, damageTaken: 0, hitsLanded: 0, hitsTaken: 0 };
   style = { n: 0, t: 0 };
   queue: QueuedSpawn[] = [];
   fighting = false;
@@ -34,7 +39,10 @@ export class CreativeController {
     private start: { x: number; y: number },
   ) {
     this.offs.push(
-      GameEvents.on('player:hurt', (p) => (this.stats.damageTaken += p.amount)),
+      GameEvents.on('player:hurt', (p) => {
+        this.stats.damageTaken += p.amount;
+        this.stats.hitsTaken++;
+      }),
       GameEvents.on('hit:landed', () => {
         this.stats.hitsLanded++;
         this.style.n = this.style.t > 0 ? this.style.n + 1 : 1;
@@ -147,7 +155,7 @@ export class CreativeController {
   }
 
   resetStats(): void {
-    this.stats = { timeMs: 0, damageTaken: 0, hitsLanded: 0 };
+    this.stats = { timeMs: 0, damageTaken: 0, hitsLanded: 0, hitsTaken: 0 };
     this.style = { n: 0, t: 0 };
   }
 

@@ -25,6 +25,10 @@ export class CameraDirector {
   focus: { x: number; y: number } | null = null;
   focusLerp = 0.08;
   aimOffset = 0;
+  /** Flying bosses: frame the hero and this world point together (midpoint, hero kept on screen). */
+  frame: { x: number; y: number } | null = null;
+  /** Per-arena resting zoom (v2 §A6.2: Sky Citadel 0.9). */
+  baseZoom = 1;
   private sx = 0;
   private sy = 0;
 
@@ -69,7 +73,7 @@ export class CameraDirector {
 
   unfocus(ms: number): void {
     this.focus = null;
-    this.zoomTo(1, ms);
+    this.zoomTo(this.baseZoom, ms);
   }
 
   zoomTo(z: number, ms: number): void {
@@ -108,6 +112,11 @@ export class CameraDirector {
       this.look += (wantLook - this.look) * Math.min(1, dt / c.lookAheadSmoothMs);
       tx = t.x + this.look + this.aimOffset;
       ty = t.y - 70;
+      if (this.frame) {
+        const hw = GAME_W / this.cam.zoom / 2 - 110;
+        tx = Phaser.Math.Clamp((t.x + this.frame.x) / 2, t.x - hw, t.x + hw);
+        ty = Math.min(ty, (t.y - 40 + this.frame.y) / 2);
+      }
       const dzw = c.deadzoneW / 2;
       const dzh = c.deadzoneH / 2;
       let gx = this.fx;

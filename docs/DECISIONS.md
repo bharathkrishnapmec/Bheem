@@ -33,3 +33,23 @@
 | 29 | Quick Reset is synchronous (≈20–70 ms observed): destroys boss/enemies/projectiles/pickups, restores the hero at spawn, and restarts the selected boss fight. Creative death = 0.9 s desaturate then full-stat respawn in place; nothing else resets unless the player asks. | Brief P5 (< 500 ms) and "reset only on player choice". |
 | 30 | Kaalasura's real death cinematic plays in Creative and can be skipped with Attack/Jump/Confirm, which jumps straight to the result panel. | Brief P5. |
 | 31 | Keyboard shortcut edges (Tab/B/Backspace) are tracked from non-repeat keydown events. | Phaser clears `_justDown` on keyup, so fast taps were lost. |
+
+## Boss Buff v3 (M15 core)
+
+- **Kaalasura HP 3600 → 3300.** With v3's own simulator inputs (mid-skill 11 DPS, 1.5 Guard breaks/min, armor 0.20) 3600 HP models to ~7:20, outside the 5:00–7:00 range. v3 §B12.3 says "time targets win, adjust HP first", so HP was lowered until `npm run boss:sim` puts mid-skill at ~6:43. Revisit after human playtests.
+- **Simulator calibration.** `bosses.sim.brokenUptimeMul = 1.87` makes the mid-skill Guard modifier ≈ 1.0, matching v3's "tuned neutral" note. `lostMsPerPhase` models windows lost to ward, flight, Veil, etc. These are model assumptions, not measured data.
+- **Last Stand floor.** Before Last Stand has triggered, Kaalasura can't take more damage than leaves him at 5 % HP (`lastStand.floorFrac`), so one big hit can't skip the ultimate. He takes no damage during the Last Stand roar/summon window.
+- **Story phase checkpoints.** Dying in the Story boss fight offers "Retry from phase N": the hero comes back with full resources, the boss starts at that phase's HP, and deaths and playtime carry over.
+
+## Brute Champion (v3 §B7)
+- New `BruteChampion` (BossBase) replaces the plain elite Brute entry in Boss Select; registry id is `brute_mini` (v3 §B8). Story's elite Brutes keep the ordinary enemy AI.
+- Arena: Training Yard only. Courtyard loads the same Creative arena, so listing both would show a duplicate picker entry.
+- Hammer Combo: both hits deal 24; the 500 ms telegraph precedes the slam and the backhand has its own 380 ms flashing windup (above the 350 ms melee floor).
+- Shockwave Triple: three shockwaves each way, fired 300 ms apart at 480 px/s, leaving a 120 px clear gap (≥ 100 px).
+- Every third Berserk attack roars and summons 2 Imps, capped at 4 alive.
+- Double Charge: a wall hit on the first charge stuns (1.2 s, Guard −80) and cancels the second.
+
+## Leaderboard core (v2 §A2–§A5, v3 §B8)
+- Shared code lives in `src/shared/` (`scoring.ts`, `boards.ts`, `names.ts`, `types.ts`) with no Phaser imports, so the Worker can import it unchanged.
+- Trial boards are generated from `balance.trials.minFightMs` keys (`trial_kaalasura`, `trial_garjana`, `trial_nishachara`, `trial_brute`); the Brute Champion's registry id is `brute_mini` but its board stays `trial_brute` per the v2 board table.
+- v3 §B8 constants: hit penalty 6 s, token expiry 30 min (trial) / 90 min (story), Story minimum 12:00, trial minimums 90/80/70/25 s. Guard-break score cap uses the existing `balance.score.guardBreakCap` (20).

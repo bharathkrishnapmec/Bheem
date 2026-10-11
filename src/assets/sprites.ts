@@ -704,6 +704,147 @@ export function bossSheet(): SheetSpec {
   };
 }
 
+const GARJANA: HumSpec = {
+  fw: 84,
+  fh: 72,
+  legLen: 14,
+  torsoH: 20,
+  tw: 18,
+  headR: 6,
+  body: 0x2a3a6a,
+  bodyDark: 0x1a2648,
+  legs: 0x1e2a4a,
+  legsDark: 0x121a30,
+  boots: 0x0c1020,
+  arm: 0x34487a,
+  hand: 0x8a9ac0,
+  weapon: 'bow',
+  back(pc, j) {
+    const t = j.pose.t ?? 0;
+    const flap = (t % 2) * 3 + (j.pose.glow ? -2 : 0);
+    const cx = j.cx + (j.pose.lean ?? 0);
+    for (const s of [-1, 1]) {
+      pc.poly(
+        [
+          [cx, j.shY + 2],
+          [cx + s * 34, j.shY - 14 + flap],
+          [cx + s * 38, j.shY - 4 + flap],
+          [cx + s * 30, j.shY + 10 + flap],
+          [cx + s * 20, j.shY + 18],
+          [cx + s * 6, j.shY + 16],
+        ],
+        0xc8d8f0,
+      );
+      for (let k = 1; k < 4; k++) pc.line(cx + s * (6 + k * 8), j.shY + 14 - k, cx + s * (10 + k * 8), j.shY - 6 - k * 3 + flap, 0x7a8ab0);
+    }
+  },
+  torso(pc, j, x0, y0) {
+    const bolt = j.pose.glow ? 0xffffff : PAL.statusCyan;
+    pc.rect(x0, y0, 18, 3, PAL.gold);
+    pc.rect(x0 + 2, j.hipY - 3, 14, 3, 0x0c1020);
+    pc.line(x0 + 4, y0 + 4, x0 + 9, y0 + 11, bolt);
+    pc.line(x0 + 9, y0 + 11, x0 + 6, y0 + 13, bolt);
+    pc.line(x0 + 6, y0 + 13, x0 + 12, y0 + 19, bolt);
+    pc.ellipse(x0 + 1, y0 + 2, 4, 3, 0x1a2648);
+    pc.ellipse(x0 + 17, y0 + 2, 4, 3, 0x1a2648);
+  },
+  head(pc, j) {
+    const { headX: hx, headY: hy } = j;
+    pc.disc(hx, hy + 1, 6, 0x2a3a6a);
+    pc.rect(hx - 5, hy - 5, 11, 3, PAL.gold);
+    pc.poly(
+      [
+        [hx - 4, hy - 5],
+        [hx - 2, hy - 13],
+        [hx, hy - 5],
+      ],
+      0xe8f0ff,
+    );
+    pc.poly(
+      [
+        [hx + 1, hy - 5],
+        [hx + 4, hy - 12],
+        [hx + 5, hy - 5],
+      ],
+      0xe8f0ff,
+    );
+    pc.rect(hx + 1, hy - 1, 5, 2, 0x0c1020);
+    pc.rect(hx + 2, hy - 1, 3, 1, PAL.statusCyan);
+    pc.rect(hx - 1, hy + 3, 6, 3, 0xd8e0f0);
+  },
+};
+
+export function garjanaSheet(): SheetSpec {
+  const P = (p: Pose) => humanoid(GARJANA, { weaponAng: -60, ra: [6, 4], la: [-3, 14], ...p });
+  return {
+    idle: { frames: [0, 1, 2, 3].map((i) => P({ bob: i < 2 ? 0 : 1, t: i })), fps: 6, repeat: -1 },
+    bow: { frames: [P({ ra: [16, -2], la: [6, -2], weaponAng: -5, lean: 1, t: 1 })], fps: 1, repeat: 0 },
+    cast: { frames: [P({ ra: [4, -10], la: [16, -4], glow: true, t: 0 }), P({ ra: [4, -10], la: [17, -5], glow: false, t: 1 })], fps: 8, repeat: -1 },
+    windup: { frames: [P({ lean: -3, crouch: 2, ra: [-4, -12], la: [-6, -10], t: 0 })], fps: 1, repeat: 0 },
+    dive: { frames: [P({ lean: 6, ra: [14, 6], la: [10, 8], weaponAng: 20, t: 1 })], fps: 1, repeat: 0 },
+    roar: { frames: [P({ ra: [8, -14], la: [-8, -14], glow: true, lean: -2, t: 0 }), P({ ra: [9, -15], la: [-9, -15], glow: false, lean: -2, t: 1 })], fps: 10, repeat: -1 },
+    hurt: { frames: [P({ lean: -4, ra: [-2, 2], weaponAng: -130 })], fps: 1, repeat: 0 },
+    kneel: { frames: [P({ crouch: 8, lean: 2, ra: [10, 12], la: [4, 14], weaponAng: 95, glow: true })], fps: 1, repeat: 0 },
+  };
+}
+
+const NISHACHARA: HumSpec = {
+  fw: 56,
+  fh: 62,
+  legLen: 16,
+  torsoH: 16,
+  tw: 12,
+  headR: 6,
+  body: 0x2a1a3e,
+  bodyDark: 0x1a1028,
+  legs: 0x22162f,
+  legsDark: 0x140c1e,
+  boots: 0x0a0610,
+  arm: 0x2e1e44,
+  hand: 0x6a5a80,
+  weapon: 'shortSword',
+  back(pc, j) {
+    const t = j.pose.t ?? 0;
+    const cx = j.cx + (j.pose.lean ?? 0);
+    const f = (t % 2) * 2;
+    pc.poly(
+      [
+        [cx - 2, j.shY],
+        [cx - 14, j.shY + 3 + f],
+        [cx - 19, j.shY + 9 + f],
+        [cx - 4, j.shY + 5],
+      ],
+      0x6a1a8a,
+    );
+  },
+  torso(pc, j, x0, y0) {
+    pc.rect(x0, j.hipY - 3, 12, 2, 0x8a2aa8);
+    pc.line(x0 + 1, y0 + 1, x0 + 10, y0 + 10, 0x3a2650);
+  },
+  head(pc, j) {
+    const { headX: hx, headY: hy } = j;
+    pc.disc(hx, hy, 6, 0x1a1028);
+    pc.rect(hx - 6, hy - 1, 12, 3, 0x2a1a3e);
+    pc.rect(hx - 1, hy, 6, 1, j.pose.glow ? 0xffffff : 0xc070ff);
+    pc.rect(hx - 5, hy + 2, 10, 3, 0x3a2a4e);
+  },
+};
+
+export function nishacharaSheet(): SheetSpec {
+  const P = (p: Pose) => humanoid(NISHACHARA, { weaponAng: 120, ra: [6, 6], la: [-4, 10], ...p });
+  return {
+    idle: { frames: [0, 1, 2, 3].map((i) => P({ bob: i < 2 ? 0 : 1, t: i })), fps: 6, repeat: -1 },
+    run: { frames: [0, 1, 2, 3].map((i) => P({ lean: 4, bob: i % 2, t: i, ra: [8, 2], weaponAng: 160 })), fps: 10, repeat: -1 },
+    crouch: { frames: [P({ crouch: 6, lean: 3, ra: [10, 0], weaponAng: 170 })], fps: 1, repeat: 0 },
+    slash: { frames: [P({ lean: 4, ra: [14, -6], weaponAng: -30, t: 0 }), P({ lean: 6, ra: [16, 4], weaponAng: 40, t: 1 })], fps: 12, repeat: 0 },
+    throw: { frames: [P({ ra: [14, -8], la: [-6, 6], weaponAng: 200, lean: 2 })], fps: 1, repeat: 0 },
+    cast: { frames: [P({ ra: [4, -10], la: [12, -4], glow: true, t: 0 }), P({ ra: [4, -10], la: [13, -5], glow: false, t: 1 })], fps: 8, repeat: -1 },
+    roar: { frames: [P({ ra: [8, -12], la: [-8, -12], glow: true, lean: -2, t: 0 }), P({ ra: [9, -13], la: [-9, -13], glow: false, lean: -2, t: 1 })], fps: 10, repeat: -1 },
+    hurt: { frames: [P({ lean: -4, ra: [-2, 2], weaponAng: -130 })], fps: 1, repeat: 0 },
+    kneel: { frames: [P({ crouch: 8, lean: 2, ra: [10, 12], la: [4, 14], weaponAng: 95, glow: true })], fps: 1, repeat: 0 },
+  };
+}
+
 // ---------------------------------------------------------------- allies & villagers
 function allySpec(kind: 'spearman' | 'archer' | 'shieldbearer' | 'captain'): HumSpec {
   const cap = kind === 'captain';
@@ -1439,6 +1580,38 @@ export function tileTextures(): Record<string, PixelCanvas> {
   for (let i = 0; i < 4; i++) spikes.set(i * 4 + 2, 4, 0xffffff);
   spikes.outline(O);
   out.tile_spikes = spikes;
+  // Lava Forge: basalt + glowing rim, lava surface
+  const basalt = new PixelCanvas(16, 16);
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const n = hash2(x, y, 41);
+      basalt.set(x, y, n > 0.92 ? 0x5a2a20 : n < 0.1 ? 0x120c10 : (x + y * 3) % 11 === 0 ? 0x2a1a1c : 0x221618);
+    }
+  out.tile_basalt = basalt;
+  const basaltTop = new PixelCanvas(16, 8);
+  for (let y = 0; y < 8; y++)
+    for (let x = 0; x < 16; x++) basaltTop.set(x, y, y === 0 ? O : y === 1 ? 0xff8a3a : y === 2 ? 0xc04a20 : hash2(x, y, 43) > 0.8 ? 0x3a2220 : 0x2a1a1c);
+  out.tile_basaltTop = basaltTop;
+  const lava = new PixelCanvas(16, 16);
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const wave = Math.sin((x / 16) * Math.PI * 2 + y * 0.6) * 0.5 + 0.5;
+      const n = hash2(x, y, 47);
+      lava.set(x, y, y === 0 ? 0xffe080 : y < 3 ? 0xffb040 : wave > 0.75 || n > 0.93 ? 0xff9030 : n < 0.1 ? 0x901808 : 0xd84a14);
+    }
+  out.tile_lava = lava;
+  // Sky Citadel: cloud-capped temple stone
+  const skyTop = new PixelCanvas(16, 8);
+  for (let y = 0; y < 8; y++)
+    for (let x = 0; x < 16; x++) skyTop.set(x, y, y === 0 ? O : y === 1 ? 0xf4ecff : y === 2 ? 0xd8c8ee : y === 7 ? 0x5a4a70 : hash2(x, y, 53) > 0.8 ? 0xb8a8d0 : 0x8a7aa8);
+  out.tile_skyTop = skyTop;
+  const skyStone = new PixelCanvas(16, 16);
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const brick = y % 8 === 7 || (x + (Math.floor(y / 8) % 2) * 8) % 16 === 15;
+      skyStone.set(x, y, brick ? 0x3e3256 : hash2(x, y, 57) > 0.85 ? 0x7a6a98 : 0x5e5080);
+    }
+  out.tile_skyStone = skyStone;
   return out;
 }
 

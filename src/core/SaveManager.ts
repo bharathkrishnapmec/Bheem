@@ -18,6 +18,8 @@ export interface SaveSettings {
   haptics: boolean;
   quality: QualityPreset;
   toolboxPauses: boolean;
+  /** Accessibility: diamond over the real Nishachara (v2 §A8.2). */
+  markReal: boolean;
 }
 
 export type TouchSize = 'S' | 'M' | 'L';
@@ -86,6 +88,7 @@ export function defaultSettings(): SaveSettings {
     haptics: true,
     quality: 'auto',
     toolboxPauses: true,
+    markReal: true,
   };
 }
 
@@ -127,6 +130,7 @@ export function parseSave(raw: unknown): SaveData {
     haptics: bool(s.haptics, d.haptics),
     quality: oneOf(s.quality, QUALITIES, d.quality),
     toolboxPauses: bool(s.toolboxPauses, d.toolboxPauses),
+    markReal: bool(s.markReal, d.markReal),
   };
   const out: SaveData = { version: 1, settings };
   const p = migrated.progress as Record<string, unknown> | undefined;

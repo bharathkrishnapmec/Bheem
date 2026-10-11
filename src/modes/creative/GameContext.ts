@@ -1,4 +1,6 @@
-export type GameMode = 'story' | 'creative';
+import { balance } from '@/config/balance';
+import type { ArenaId } from '@/level/levelSchema';
+export type GameMode = 'story' | 'creative' | 'trial';
 
 export interface Modifiers {
   godMode: boolean;
@@ -6,6 +8,8 @@ export interface Modifiers {
   infiniteArrows: boolean;
   instantRally: boolean;
   noDashCooldown: boolean;
+  /** Creative toolbox: pause geysers / crumbling / wind (lava and void still apply). */
+  hazardsPaused: boolean;
 }
 
 export const storyModifiers = (): Modifiers => ({
@@ -14,15 +18,30 @@ export const storyModifiers = (): Modifiers => ({
   infiniteArrows: false,
   instantRally: false,
   noDashCooldown: false,
+  hazardsPaused: false,
 });
 
 export interface CreativeStart {
   kind: 'sandbox' | 'boss';
+  arena?: ArenaId;
   bossId?: string;
-  phase?: 1 | 2 | 3;
+  phase?: 1 | 2 | 3 | 4;
   allies?: 'none' | 'auto';
   skipIntro?: boolean;
 }
+
+export type BossPreset = 'classic' | 'normal' | 'legendary';
+/** Creative-only boss strength (Boss Buff v3 §B2.4). Story and Trials always use Normal. */
+export interface BossStrength {
+  preset: BossPreset;
+  hpMul: number;
+  dmgMul: number;
+}
+/** Creative strength slider step, clamped to [min, max] (Boss HP x0.25-4, damage x0-2). */
+export function stepMul(v: number, dir: number, min: number, max: number, step: number): number {
+  return Math.min(max, Math.max(min, Math.round((v + dir * step) / step) * step));
+}
+export const normalStrength = (): BossStrength => ({ preset: 'normal', hpMul: 1, dmgMul: 1 });
 
 /** Run-wide mode switch. Story mode always runs with every modifier off. */
 export const GameContext = {
@@ -30,11 +49,13 @@ export const GameContext = {
   modifiers: storyModifiers(),
   slowMo: 1 as 1 | 0.5 | 0.25,
   start: null as CreativeStart | null,
+  bossStrength: normalStrength(),
   enterStory(): void {
     this.mode = 'story';
     this.modifiers = storyModifiers();
     this.slowMo = 1;
     this.start = null;
+    this.bossStrength = normalStrength();
   },
   enterCreative(start: CreativeStart): void {
     if (this.mode !== 'creative') {
@@ -44,7 +65,25 @@ export const GameContext = {
     this.mode = 'creative';
     this.start = start;
   },
+  /** Boss Trials: fixed rules, no modifiers, Normal strength (v2 §A4.2). */
+  enterTrial(start: CreativeStart): void {
+    this.mode = 'trial';
+    this.modifiers = storyModifiers();
+    this.slowMo = 1;
+    this.start = start;
+    this.bossStrength = normalStrength();
+  },
+  get trial(): boolean {
+    return this.mode === 'trial';
+  },
   get creative(): boolean {
     return this.mode === 'creative';
   },
 };
+
+/** Multipliers bosses actually use: Normal outside Creative, preset × sliders inside it. */
+export function effectiveBossStrength(): { hpMul: number; dmgMul: number; enrageShiftMs: number; normal: boolean } {
+  const s = GameContext.creative ? GameContext.bossStrength : normalStrength();
+  const p = balance.bosses.presets[s.preset];
+  return { hpMul: p.hpMul * s.hpMul, dmgMul: p.dmgMul * s.dmgMul, enrageShiftMs: p.enrageShiftMs, normal: s.preset === 'normal' && s.hpMul === 1 && s.dmgMul === 1 };
+}

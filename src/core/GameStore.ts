@@ -23,7 +23,7 @@ export interface StoreState {
   checkpointId: string;
   bossHp: number;
   bossMax: number;
-  bossPhase: 1 | 2 | 3;
+  bossPhase: 1 | 2 | 3 | 4;
   deaths: number;
   playtimeMs: number;
   kills: number;
@@ -147,7 +147,7 @@ export class Store {
     this.dirty.add('rescue');
   }
 
-  setBoss(hp: number, max: number, phase: 1 | 2 | 3): void {
+  setBoss(hp: number, max: number, phase: 1 | 2 | 3 | 4): void {
     this.state.bossHp = hp;
     this.state.bossMax = max;
     this.state.bossPhase = phase;

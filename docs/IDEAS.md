@@ -9,3 +9,4 @@
 - **Accessibility**: remappable touch layout editor, colour-blind palette for violet/gold district states, hold-to-toggle options.
 - **Gamepad rumble** mirroring the touch haptics.
 - **Speedrun timer split** per district in Story.
+- **Leaderboard follow-ups**: first-submit name entry overlay with a native `<input>` and "Always submit" choice (names currently default to `Bheem####`), admin delete endpoint, Story score submission from the Victory screen, deterministic replay verification via `inputLogHash`.

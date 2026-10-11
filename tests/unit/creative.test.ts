@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { GameContext, storyModifiers } from '@/modes/creative/GameContext';
+import { balance } from '@/config/balance';
+import { GameContext, effectiveBossStrength, stepMul, storyModifiers } from '@/modes/creative/GameContext';
 import { validateLevel } from '@/level/levelSchema';
 import arena from '@/modes/creative/creative_arena.level.json';
 import village from '@/level/village.level.json';
@@ -47,5 +48,23 @@ describe('creative arena map', () => {
 
   it('story village still requires its four districts', () => {
     expect(validateLevel(village).districts).toHaveLength(4);
+  });
+});
+
+describe('Creative boss strength (v3 §B2.4)', () => {
+  beforeEach(() => GameContext.enterStory());
+  it('Story ignores Creative strength; Legendary stacks with the sliders', () => {
+    GameContext.bossStrength = { preset: 'legendary', hpMul: 2, dmgMul: 0.5 };
+    expect(effectiveBossStrength()).toMatchObject({ hpMul: 1, dmgMul: 1, normal: true });
+    GameContext.enterCreative({ kind: 'boss', bossId: 'kaalasura' });
+    GameContext.bossStrength = { preset: 'legendary', hpMul: 2, dmgMul: 0.5 };
+    expect(effectiveBossStrength()).toMatchObject({ hpMul: 3, dmgMul: 0.625, enrageShiftMs: -120_000, normal: false });
+  });
+  it('sliders step by 0.25 within HP x0.25-4 and damage x0-2', () => {
+    const C = balance.bosses.creative;
+    expect(stepMul(0.25, -1, C.hpMulMin, C.hpMulMax, C.step)).toBe(0.25);
+    expect(stepMul(4, 1, C.hpMulMin, C.hpMulMax, C.step)).toBe(4);
+    expect(stepMul(1, 1, C.hpMulMin, C.hpMulMax, C.step)).toBe(1.25);
+    expect(stepMul(0.25, -1, C.dmgMulMin, C.dmgMulMax, C.step)).toBe(0);
   });
 });

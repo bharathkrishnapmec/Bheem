@@ -1,6 +1,8 @@
 import raw from './village.level.json';
 import arenaRaw from '@/modes/creative/creative_arena.level.json';
-import { validateLevel, type LevelData, LevelValidationError } from './levelSchema';
+import forgeRaw from './arenas/lava_forge.level.json';
+import skyRaw from './arenas/sky_citadel.level.json';
+import { validateLevel, type ArenaId, type LevelData, LevelValidationError } from './levelSchema';
 import { checkReachability } from './reachability';
 
 export interface LoadResult {
@@ -15,6 +17,15 @@ export function loadVillage(): LoadResult {
 export function loadCreativeArena(): LoadResult {
   return loadLevel(arenaRaw);
 }
+
+/** Creative / Trial arenas (v2 §A6). 'training_yard' and 'courtyard' are the existing Creative arena. */
+export function loadArena(id: ArenaId = 'training_yard'): LoadResult {
+  if (id === 'lava_forge') return loadLevel(forgeRaw);
+  if (id === 'sky_citadel') return loadLevel(skyRaw);
+  return loadLevel(arenaRaw);
+}
+
+export const ARENA_IDS: readonly ArenaId[] = ['training_yard', 'lava_forge', 'sky_citadel'];
 
 function loadLevel(src: unknown): LoadResult {
   try {

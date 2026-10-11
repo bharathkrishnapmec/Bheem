@@ -14,6 +14,7 @@ export class ScoreSystem {
   private rescued: number;
   private hurt = false;
   private visited = new Set<DistrictId>();
+  private breaks = 0;
 
   constructor(
     private pos: () => { x: number; y: number },
@@ -26,7 +27,14 @@ export class ScoreSystem {
       this.offs.push(() => GameEvents.off(k, fn));
     };
     on('enemy:killed', (p) => this.add(pointsForKill(p.type), p.x, p.y - 40));
+    on('env:kill', () => this.addAtHero(balance.score.envKill, STR.hud.environment));
     on('boss:died', () => this.addAtHero(balance.score.boss));
+    on('boss:break', () => {
+      if (this.breaks++ < balance.score.guardBreakCap) this.addAtHero(balance.score.guardBreak, STR.boss.break);
+    });
+    on('boss:warbanner', () => this.addAtHero(balance.score.warbanner));
+    on('boss:cloneBreak', () => this.addAtHero(balance.score.cloneBreak, STR.nishachara.cloneBreak));
+    on('boss:perfectDeflect', () => this.addAtHero(balance.score.perfectDeflect, STR.garjana.perfect));
     on('rescue:changed', (p) => {
       if (p.rescued > this.rescued) this.addAtHero(balance.score.captive * (p.rescued - this.rescued));
       this.rescued = p.rescued;
@@ -47,9 +55,9 @@ export class ScoreSystem {
     });
   }
 
-  private addAtHero(n: number): void {
+  private addAtHero(n: number, label?: string): void {
     const q = this.pos();
-    this.add(n, q.x, q.y);
+    this.add(n, q.x, q.y, label);
   }
 
   add(n: number, x?: number, y?: number, label?: string): void {
