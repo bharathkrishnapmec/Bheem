@@ -5,6 +5,22 @@
 
 export const balance = {
   /** Cosmetic Story-mode score (never affects gameplay). */
+  /** Boss Trials + leaderboard constants (v2 §A4/§A5 with v3 §B8 values). Min times are deliberately
+   * conservative: recalibrate to 60 % of the fastest legitimate time after playtesting. */
+  trials: {
+    loadoutTier: 1,
+    hitPenaltyMs: 6000,
+    trialTokenMs: 30 * 60_000,
+    storyTokenMs: 90 * 60_000,
+    wallClockToleranceMs: 2000,
+    storyMinMs: 12 * 60_000,
+    minFightMs: { kaalasura: 90_000, garjana: 80_000, nishachara: 70_000, brute: 25_000 },
+    seed: { kaalasura: 7101, garjana: 7202, nishachara: 7303, brute: 7404 },
+    hiddenTaintMs: 60_000,
+    localTop: 20,
+    queueMax: 20,
+    queueTtlMs: 24 * 3_600_000,
+  },
   score: {
     kill: { imp: 10, raider: 30, boneArcher: 40, mireHexer: 50, skyCaller: 80, brute: 150 },
     boss: 3000,
@@ -18,6 +34,7 @@ export const balance = {
     chest: 50,
     noDamageDistrict: 250,
     envKill: 25,
+    impKillCap: 60,
   },
   world: {
     physicsFps: 60,

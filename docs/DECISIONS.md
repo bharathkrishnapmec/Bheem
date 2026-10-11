@@ -48,3 +48,8 @@
 - Shockwave Triple: three shockwaves each way, fired 300 ms apart at 480 px/s, leaving a 120 px clear gap (≥ 100 px).
 - Every third Berserk attack roars and summons 2 Imps, capped at 4 alive.
 - Double Charge: a wall hit on the first charge stuns (1.2 s, Guard −80) and cancels the second.
+
+## Leaderboard core (v2 §A2–§A5, v3 §B8)
+- Shared code lives in `src/shared/` (`scoring.ts`, `boards.ts`, `names.ts`, `types.ts`) with no Phaser imports, so the Worker can import it unchanged.
+- Trial boards are generated from `balance.trials.minFightMs` keys (`trial_kaalasura`, `trial_garjana`, `trial_nishachara`, `trial_brute`); the Brute Champion's registry id is `brute_mini` but its board stays `trial_brute` per the v2 board table.
+- v3 §B8 constants: hit penalty 6 s, token expiry 30 min (trial) / 90 min (story), Story minimum 12:00, trial minimums 90/80/70/25 s. Guard-break score cap uses the existing `balance.score.guardBreakCap` (20).
