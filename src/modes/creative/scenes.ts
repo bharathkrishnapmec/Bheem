@@ -11,7 +11,8 @@ import { InputManager } from '@/input/InputManager';
 import { pxText } from '@/ui/text';
 import { MenuList, drawPanel, type MenuItem } from '@/ui/widgets';
 import { TouchControls } from '@/ui/touch/TouchControls';
-import { GameContext, type CreativeStart } from './GameContext';
+import { balance } from '@/config/balance';
+import { GameContext, effectiveBossStrength, stepMul, type BossPreset, type BossStrength, type CreativeStart } from './GameContext';
 import { CreativeStore } from './CreativeStore';
 import { bossRegistry } from './bossRegistry';
 import type { CreativeController } from './CreativeController';
@@ -93,6 +94,8 @@ export class CreativeMenuScene extends MenuScene {
 }
 
 /** Boss cards generated from bossRegistry plus fight options. */
+const PRESETS: readonly BossPreset[] = ['classic', 'normal', 'legendary'];
+const CS = balance.bosses.creative;
 const phaseList = (n: number): readonly (1 | 2 | 3 | 4)[] => ([1, 2, 3, 4] as const).slice(0, Math.max(1, n));
 
 export class BossSelectScene extends MenuScene {
@@ -142,12 +145,37 @@ export class BossSelectScene extends MenuScene {
         onRight: () => (this.skipIntro = !this.skipIntro),
         onConfirm: () => (this.skipIntro = !this.skipIntro),
       },
+      {
+        label: () => STR.creative.bossStrength,
+        value: () => `< ${STR.creative.presets[GameContext.bossStrength.preset]} >`,
+        onLeft: () => this.setStrength({ preset: cycle(PRESETS, GameContext.bossStrength.preset, -1) }),
+        onRight: () => this.setStrength({ preset: cycle(PRESETS, GameContext.bossStrength.preset, 1) }),
+        onConfirm: () => this.setStrength({ preset: cycle(PRESETS, GameContext.bossStrength.preset, 1) }),
+      },
+      {
+        label: () => STR.creative.bossHp,
+        value: () => `< ${STR.creative.mul(GameContext.bossStrength.hpMul)} >`,
+        onLeft: () => this.setStrength({ hpMul: stepMul(GameContext.bossStrength.hpMul, -1, CS.hpMulMin, CS.hpMulMax, CS.step) }),
+        onRight: () => this.setStrength({ hpMul: stepMul(GameContext.bossStrength.hpMul, 1, CS.hpMulMin, CS.hpMulMax, CS.step) }),
+        onConfirm: () => this.setStrength({ hpMul: stepMul(GameContext.bossStrength.hpMul, 1, CS.hpMulMin, CS.hpMulMax, CS.step) }),
+      },
+      {
+        label: () => STR.creative.bossDmg,
+        value: () => `< ${STR.creative.mul(GameContext.bossStrength.dmgMul)} >`,
+        onLeft: () => this.setStrength({ dmgMul: stepMul(GameContext.bossStrength.dmgMul, -1, CS.dmgMulMin, CS.dmgMulMax, CS.step) }),
+        onRight: () => this.setStrength({ dmgMul: stepMul(GameContext.bossStrength.dmgMul, 1, CS.dmgMulMin, CS.dmgMulMax, CS.step) }),
+        onConfirm: () => this.setStrength({ dmgMul: stepMul(GameContext.bossStrength.dmgMul, 1, CS.dmgMulMin, CS.dmgMulMax, CS.step) }),
+      },
       { label: () => STR.creative.fight, onConfirm: () => this.fight() },
       { label: () => STR.creative.back, onConfirm: () => this.onBack() },
     ];
-    this.menu = new MenuList(this, GAME_W / 2, 300, items, { width: 520, spacing: 34, scale: 2 });
+    this.menu = new MenuList(this, GAME_W / 2, 300, items, { width: 520, spacing: 26, scale: 2 });
     this.setupInput();
     setSceneName('BossSelect');
+  }
+  private setStrength(p: Partial<BossStrength>): void {
+    GameContext.bossStrength = { ...GameContext.bossStrength, ...p };
+    this.drawCards();
   }
   private pick(d: number): void {
     this.sel = (this.sel + d + bossRegistry.length) % bossRegistry.length;
@@ -181,7 +209,7 @@ export class BossSelectScene extends MenuScene {
         thumb,
         pxText(this, tx, ty, b.name, b.name.length > 10 ? 1.5 : 2, on ? PAL.cleanseGold : 0xc8c0d8),
         pxText(this, tx, ty + (compact ? 18 : 22), b.title, 1, PAL.statusCyan),
-        pxText(this, tx, ty + (compact ? 32 : 42), `${STR.creative.hp} ${b.hp}   ${STR.creative.phases} ${b.phases}`, 1, 0xffffff),
+        pxText(this, tx, ty + (compact ? 32 : 42), `${STR.creative.hp} ${Math.max(1, Math.round(b.hp * effectiveBossStrength().hpMul))}   ${STR.creative.phases} ${b.phases}`, 1, 0xffffff),
         pxText(this, tx, ty + (compact ? 44 : 58), `${STR.creative.bestTime} ${fmt(CreativeStore.bestTime(b.id))}  ${b.estimate}`, 1, PAL.cleanseGold),
         pxText(this, tx, ty + (compact ? 58 : 78), b.description, 1, 0xd8d0e8).setMaxWidth(compact ? cw - 20 : cw - 122),
         zone,

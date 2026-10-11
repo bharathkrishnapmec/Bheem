@@ -37,6 +37,10 @@ export interface BossStrength {
   hpMul: number;
   dmgMul: number;
 }
+/** Creative strength slider step, clamped to [min, max] (Boss HP x0.25-4, damage x0-2). */
+export function stepMul(v: number, dir: number, min: number, max: number, step: number): number {
+  return Math.min(max, Math.max(min, Math.round((v + dir * step) / step) * step));
+}
 export const normalStrength = (): BossStrength => ({ preset: 'normal', hpMul: 1, dmgMul: 1 });
 
 /** Run-wide mode switch. Story mode always runs with every modifier off. */

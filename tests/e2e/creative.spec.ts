@@ -52,12 +52,12 @@ test('creative: Toolbox + Boss Select by keyboard, phase-2 Kaalasura, result pan
   await page.waitForTimeout(300);
   await page.keyboard.press('b');
   await expect.poll(() => scene(page)).toBe('BossSelect');
-  // Boss Select rows (960x540 game space): Start phase at y=344, FIGHT! at y=446. Clicks are frame-rate independent.
+  // Boss Select rows (960x540 game space): Start phase at y=336, FIGHT! at y=492. Clicks are frame-rate independent.
   const c = (await page.locator('canvas').boundingBox())!;
   const click = (gy: number) => page.locator('canvas').click({ position: { x: 0.5 * c.width, y: (gy / 540) * c.height } });
-  await click(344);
+  await click(336);
   await page.waitForTimeout(200);
-  await click(446);
+  await click(492);
   await expect.poll(() => H<string>(page, 'h.creative().bossStage'), { timeout: 5_000 }).toBe('fight');
   // Game-clock latency from scene start to the fight going live (brief: < 1 s).
   expect(await H<number>(page, 'h.creative().fightStartMs')).toBeLessThan(1000);
