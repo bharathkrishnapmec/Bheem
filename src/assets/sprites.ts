@@ -788,6 +788,63 @@ export function garjanaSheet(): SheetSpec {
   };
 }
 
+const NISHACHARA: HumSpec = {
+  fw: 56,
+  fh: 62,
+  legLen: 16,
+  torsoH: 16,
+  tw: 12,
+  headR: 6,
+  body: 0x2a1a3e,
+  bodyDark: 0x1a1028,
+  legs: 0x22162f,
+  legsDark: 0x140c1e,
+  boots: 0x0a0610,
+  arm: 0x2e1e44,
+  hand: 0x6a5a80,
+  weapon: 'shortSword',
+  back(pc, j) {
+    const t = j.pose.t ?? 0;
+    const cx = j.cx + (j.pose.lean ?? 0);
+    const f = (t % 2) * 2;
+    pc.poly(
+      [
+        [cx - 2, j.shY],
+        [cx - 14, j.shY + 3 + f],
+        [cx - 19, j.shY + 9 + f],
+        [cx - 4, j.shY + 5],
+      ],
+      0x6a1a8a,
+    );
+  },
+  torso(pc, j, x0, y0) {
+    pc.rect(x0, j.hipY - 3, 12, 2, 0x8a2aa8);
+    pc.line(x0 + 1, y0 + 1, x0 + 10, y0 + 10, 0x3a2650);
+  },
+  head(pc, j) {
+    const { headX: hx, headY: hy } = j;
+    pc.disc(hx, hy, 6, 0x1a1028);
+    pc.rect(hx - 6, hy - 1, 12, 3, 0x2a1a3e);
+    pc.rect(hx - 1, hy, 6, 1, j.pose.glow ? 0xffffff : 0xc070ff);
+    pc.rect(hx - 5, hy + 2, 10, 3, 0x3a2a4e);
+  },
+};
+
+export function nishacharaSheet(): SheetSpec {
+  const P = (p: Pose) => humanoid(NISHACHARA, { weaponAng: 120, ra: [6, 6], la: [-4, 10], ...p });
+  return {
+    idle: { frames: [0, 1, 2, 3].map((i) => P({ bob: i < 2 ? 0 : 1, t: i })), fps: 6, repeat: -1 },
+    run: { frames: [0, 1, 2, 3].map((i) => P({ lean: 4, bob: i % 2, t: i, ra: [8, 2], weaponAng: 160 })), fps: 10, repeat: -1 },
+    crouch: { frames: [P({ crouch: 6, lean: 3, ra: [10, 0], weaponAng: 170 })], fps: 1, repeat: 0 },
+    slash: { frames: [P({ lean: 4, ra: [14, -6], weaponAng: -30, t: 0 }), P({ lean: 6, ra: [16, 4], weaponAng: 40, t: 1 })], fps: 12, repeat: 0 },
+    throw: { frames: [P({ ra: [14, -8], la: [-6, 6], weaponAng: 200, lean: 2 })], fps: 1, repeat: 0 },
+    cast: { frames: [P({ ra: [4, -10], la: [12, -4], glow: true, t: 0 }), P({ ra: [4, -10], la: [13, -5], glow: false, t: 1 })], fps: 8, repeat: -1 },
+    roar: { frames: [P({ ra: [8, -12], la: [-8, -12], glow: true, lean: -2, t: 0 }), P({ ra: [9, -13], la: [-9, -13], glow: false, lean: -2, t: 1 })], fps: 10, repeat: -1 },
+    hurt: { frames: [P({ lean: -4, ra: [-2, 2], weaponAng: -130 })], fps: 1, repeat: 0 },
+    kneel: { frames: [P({ crouch: 8, lean: 2, ra: [10, 12], la: [4, 14], weaponAng: 95, glow: true })], fps: 1, repeat: 0 },
+  };
+}
+
 // ---------------------------------------------------------------- allies & villagers
 function allySpec(kind: 'spearman' | 'archer' | 'shieldbearer' | 'captain'): HumSpec {
   const cap = kind === 'captain';

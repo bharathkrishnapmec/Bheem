@@ -49,6 +49,11 @@ interface Vent {
  */
 export class HazardSystem {
   t = 0;
+  /** Geyser clock (runs faster during Nishachara's Platform Purge). */
+  gt = 0;
+  geyserRate = 1;
+  /** Nishachara P4 Lava Tide: px the lava surface has risen. */
+  lavaRise = 0;
   readonly movers: Mover[] = [];
   readonly crumbles: Crumble[] = [];
   private geysers: Geyser[] = [];
@@ -119,7 +124,10 @@ export class HazardSystem {
 
   update(dt: number): void {
     const w = this.w;
-    if (!this.paused) this.t += dt;
+    if (!this.paused) {
+      this.t += dt;
+      this.gt += dt * this.geyserRate;
+    }
     for (const ts of this.lavaVis) {
       ts.tilePositionX += dt * 0.01;
       ts.tilePositionY = Math.sin(w.now / 700) * 2;
@@ -142,7 +150,10 @@ export class HazardSystem {
       const tx = r.x + r.w / 2 + o.x;
       const ty = r.y + r.h / 2 + o.y;
       const b = m.body.body as Phaser.Physics.Arcade.Body;
-      b.setVelocity((tx - m.body.x) / sec / Math.max(0.05, TimeController.scale), (ty - m.body.y) / sec / Math.max(0.05, TimeController.scale));
+      if (Math.abs(tx - m.body.x) > 48 || Math.abs(ty - m.body.y) > 48) {
+        b.reset(tx, ty);
+        b.setVelocity(0, 0);
+      } else b.setVelocity((tx - m.body.x) / sec, (ty - m.body.y) / sec);
       m.vis.setPosition(m.body.x - r.w / 2, m.body.y - r.h / 2);
     }
   }
@@ -180,7 +191,7 @@ export class HazardSystem {
     for (const gy of this.geysers) {
       const { x, y } = gy.def;
       const g = gy.g.clear();
-      const ph = this.paused ? { phase: 'idle' as const, into: 0 } : geyserPhase(this.t, gy.def.periodMs, gy.def.phaseOffsetMs, timing);
+      const ph = this.paused ? { phase: 'idle' as const, into: 0 } : geyserPhase(this.gt, gy.def.periodMs, gy.def.phaseOffsetMs, timing);
       g.fillStyle(0x1a0e0e, 1).fillRect(x - 14, y - 3, 28, 4);
       if (ph.phase === 'telegraph') {
         // glowing crack telegraph: gameplay-critical, kept in reduced effects
@@ -274,8 +285,40 @@ export class HazardSystem {
   }
 
   private inLava(a: Actor): Rect | null {
-    for (const r of this.w.level.lavaZones ?? []) if (a.x >= r.x && a.x <= r.x + r.w && a.y > r.y + 4) return r;
+    return this.lavaAt(a.x, a.y);
+  }
+  /** Lava zone under (x, y) including the current tide. */
+  lavaAt(x: number, y: number): Rect | null {
+    for (const r of this.w.level.lavaZones ?? []) if (x >= r.x && x <= r.x + r.w && y > r.y - this.lavaRise + 4) return r;
     return null;
+  }
+  /** Lowest stand height the tide may reach so no solid platform top is submerged. */
+  maxLavaRise(margin: number): number {
+    const L = this.w.level;
+    const lava = L.lavaZones ?? [];
+    if (!lava.length) return 0;
+    const top = Math.min(...lava.map((r) => r.y));
+    const lowest = Math.max(...L.solids.filter((s) => s.y > 0 && s.w < L.width).map((s) => s.y));
+    return Math.max(0, top - lowest - margin);
+  }
+  /** Raises the lava surface (tween), clamped to `maxLavaRise`. Returns the applied rise. */
+  raiseLava(px: number, margin: number): number {
+    const next = Math.min(this.lavaRise + px, this.maxLavaRise(margin));
+    if (next <= this.lavaRise) return this.lavaRise;
+    this.lavaRise = next;
+    const lava = this.w.level.lavaZones ?? [];
+    this.lavaVis.forEach((ts, i) => this.w.scene.tweens.add({ targets: ts, y: lava[i]!.y - next, duration: 900, ease: 'Sine.inOut' }));
+    return next;
+  }
+  /** Platform Purge: `n` crumbling platforms shake then sink in sequence. */
+  purge(n: number, stepMs: number): void {
+    if (this.paused) return;
+    const order = [...this.crumbles].filter((c) => c.c.state === 'solid').slice(0, n);
+    order.forEach((cr, i) => this.w.scene.time.delayedCall(i * stepMs, () => {
+      if (cr.c.state === 'solid') cr.c = { state: 'shaking', t: 0 };
+      cr.body.body!.enable = true;
+      this.w.fx.dust2(cr.def.rect.x + cr.def.rect.w / 2, cr.def.rect.y, 6);
+    }));
   }
 
   /** Arc toward the nearest safe platform with a fixed upward launch. */

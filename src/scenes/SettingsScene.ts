@@ -64,7 +64,7 @@ export class SettingsScene extends Phaser.Scene {
       onLeft: () => this.patch({ [key]: step(s()[key], -0.1) }),
       onRight: () => this.patch({ [key]: step(s()[key], 0.1) }),
     });
-    const toggle = (label: string, key: 'reducedEffects' | 'damageNumbers'): MenuItem => ({
+    const toggle = (label: string, key: 'reducedEffects' | 'damageNumbers' | 'markReal'): MenuItem => ({
       label: () => label,
       value: () => (s()[key] ? STR.settings.on : STR.settings.off),
       onLeft: () => this.patch({ [key]: !s()[key] }),
@@ -81,6 +81,7 @@ export class SettingsScene extends Phaser.Scene {
         slider(STR.settings.shake, 'shake'),
         toggle(STR.settings.reduced, 'reducedEffects'),
         toggle(STR.settings.damageNumbers, 'damageNumbers'),
+        toggle(STR.settings.markReal, 'markReal'),
         {
           label: () => STR.settings.fullscreen,
           value: () => (this.scale.isFullscreen ? STR.settings.on : STR.settings.off),
@@ -97,7 +98,7 @@ export class SettingsScene extends Phaser.Scene {
         { label: () => STR.settings.bindings, onConfirm: () => this.buildBind() },
         { label: () => STR.settings.back, onConfirm: () => this.close() },
       ],
-      { width: 440, spacing: 31, scale: 2, align: 'left' },
+      { width: 440, spacing: 29, scale: 2, align: 'left' },
     );
   }
 

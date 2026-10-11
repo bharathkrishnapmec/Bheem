@@ -39,6 +39,7 @@ export interface GameEventMap {
   'boss:warbanner': Record<string, never>;
   'boss:barrier': { up: boolean };
   'boss:perfectDeflect': Record<string, never>;
+  'boss:cloneBreak': Record<string, never>;
   'prompt:show': { key: ActionId; label: string; progress?: number };
   'prompt:hide': Record<string, never>;
   'checkpoint:reached': { id: string };

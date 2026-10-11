@@ -3,6 +3,7 @@ import { STR } from '@/config/strings';
 import type { BossBase } from '@/entities/boss/BossBase';
 import { Garjana } from '@/entities/boss/Garjana';
 import { Kaalasura } from '@/entities/boss/Kaalasura';
+import { Nishachara } from '@/entities/boss/Nishachara';
 import type { Actor } from '@/entities/Actor';
 import type { World } from '@/game/World';
 import type { ArenaId } from '@/level/levelSchema';
@@ -66,6 +67,20 @@ export const bossRegistry: readonly BossEntry[] = [
     arenas: ['sky_citadel'],
     trialEligible: true,
     boss: (w, x, y) => new Garjana(w, x, y),
+  },
+  {
+    id: 'nishachara',
+    name: STR.nishachara.name,
+    title: STR.nishachara.title,
+    description: STR.nishachara.desc,
+    hp: S.nishachara.hp,
+    phases: S.nishachara.phases,
+    difficulty: S.nishachara.difficulty,
+    estimate: estimate('nishachara'),
+    thumbnailKey: 'nishachara',
+    arenas: ['lava_forge'],
+    trialEligible: true,
+    boss: (w, x, y) => new Nishachara(w, x, y),
   },
   {
     id: 'brute',

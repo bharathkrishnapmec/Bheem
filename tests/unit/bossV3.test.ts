@@ -3,6 +3,7 @@ import { balance } from '@/config/balance';
 import { RNG } from '@/core/RNG';
 import { bossDamage, comboLength, crateDue, enrageMul, gapFor, hellfireEdge, phaseStartHp, telegraphMs } from '@/logic/boss';
 import { guardPoiseFor } from '@/logic/guard';
+import lavaForge from '@/level/arenas/lava_forge.level.json';
 
 const G = balance.bosses.global;
 
@@ -92,5 +93,42 @@ describe('Garjana v3 tuning', () => {
   it('second Judgment is harder: fewer pads, longer telegraph', () => {
     expect(G.judgment[1]!.pads).toBeLessThan(G.judgment[0]!.pads);
     expect(G.judgment[1]!.telegraphMs).toBeGreaterThan(G.judgment[0]!.telegraphMs);
+  });
+});
+
+describe('Nishachara v3 tuning', () => {
+  const N = balance.nishachara;
+  const G = balance.bosses.global;
+  it('keeps every attack under the ordinary hit cap after scaling', () => {
+    for (const a of Object.values(N.attacks)) if ('damage' in a) expect(bossDamage(a.damage)).toBeLessThanOrEqual(G.maxHitDamage);
+    for (const s of N.shadows) expect(bossDamage(s.realDamage)).toBeLessThanOrEqual(G.maxHitDamage);
+  });
+  it('weights only reference real attacks; ambush/kunai/slash in every phase', () => {
+    for (const ph of [1, 2, 3, 4] as const) {
+      const w = N.weights[ph];
+      for (const k of Object.keys(w)) expect(k in N.attacks).toBe(true);
+      expect(w).toMatchObject({ kunaiFan: expect.any(Number), slashDance: expect.any(Number), ambush: expect.any(Number) });
+    }
+    expect('eclipseVeil' in N.weights[4]).toBe(true);
+    expect('eclipseVeil' in N.weights[3]).toBe(false);
+  });
+  it('veiled tells are at least 400 ms and the shuriken gap is at least 40 degrees', () => {
+    expect(N.minTellMs).toBeGreaterThanOrEqual(400);
+    const W = N.attacks.shurikenWheel;
+    expect(W.slots - W.count).toBe(2);
+    expect((2 * 360) / W.slots).toBeGreaterThanOrEqual(40);
+  });
+  it('clone caps grow 3 / 4 / 6 and Thousand Shadows fires at 20% and 8%', () => {
+    expect([N.clones[2].cap, N.clones[3].cap, N.clones[4].cap]).toEqual([3, 4, 6]);
+    expect(N.shadows.map((s) => s.at)).toEqual([0.2, 0.08]);
+    expect(N.shadowsFloorFrac).toBeLessThan(N.shadows[1]!.at);
+  });
+  it('Lava Tide never exceeds 180 px or submerges a Lava Forge platform', () => {
+    const T = N.lavaTide;
+    expect(T.stepPx * T.maxSteps).toBeLessThanOrEqual(180);
+    const L = lavaForge as unknown as { width: number; solids: { x: number; y: number; w: number }[]; lavaZones: { y: number }[] };
+    const top = Math.min(...L.lavaZones.map((r) => r.y));
+    const lowest = Math.max(...L.solids.filter((s) => s.y > 0 && s.w < L.width).map((s) => s.y));
+    expect(top - lowest - T.dryMargin).toBeGreaterThanOrEqual(0);
   });
 });

@@ -73,3 +73,38 @@ test('creative: Toolbox + Boss Select by keyboard, phase-2 Kaalasura, result pan
   expect((await H<{ hp: number }>(page, 'h.boss()')).hp).toBe(2475);
   expect(errors).toEqual([]);
 });
+
+test('creative: Nishachara from Boss Select, Lava Forge, clones in phase 2, result panel', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  await openSandbox(page);
+  await page.waitForTimeout(300);
+  await H(page, 'h.god()');
+  await page.keyboard.press('b');
+  await expect.poll(() => scene(page)).toBe('BossSelect');
+  // Third of four registry cards (centre at 598,170 in 960x540 game space): first click selects, second fights.
+  const c = (await page.locator('canvas').boundingBox())!;
+  const card = () => page.locator('canvas').click({ position: { x: (598 / 960) * c.width, y: (170 / 540) * c.height } });
+  await card();
+  await page.waitForTimeout(200);
+  await card();
+  await expect.poll(() => H<string>(page, 'h.creative().bossStage'), { timeout: 8_000 }).toBe('fight');
+  expect((await H<{ id: string }>(page, 'h.arena()')).id).toBe('lava_forge');
+  expect(await H<number>(page, 'h.boss().max')).toBe(2600);
+  await H(page, 'h.god()');
+  for (let i = 0; i < 200 && (await H<number>(page, 'h.boss().phase')) < 2; i++) {
+    await H(page, 'h.hitBoss(60)');
+    await page.waitForTimeout(30);
+  }
+  await expect.poll(() => H<number>(page, 'h.boss().clones'), { timeout: 10_000 }).toBeGreaterThan(0);
+  // Thousand Shadows windows are invulnerable, so keep hitting by wall clock rather than by count.
+  const until = Date.now() + 150_000;
+  while (Date.now() < until && ((await H<{ hp: number } | null>(page, 'h.boss()'))?.hp ?? 0) > 0) {
+    await H(page, 'h.hitBoss(150)');
+    await page.waitForTimeout(40);
+  }
+  await expect.poll(() => scene(page), { timeout: 20_000 }).toBe('CreativeResult');
+  expect(errors).toEqual([]);
+});

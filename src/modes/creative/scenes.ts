@@ -152,33 +152,37 @@ export class BossSelectScene extends MenuScene {
   private pick(d: number): void {
     this.sel = (this.sel + d + bossRegistry.length) % bossRegistry.length;
     this.drawCards();
+    this.menu?.refresh();
   }
   private drawCards(): void {
     this.card.removeAll(true);
     const n = bossRegistry.length;
-    const cw = 300;
     const gap = 24;
+    const cw = Math.min(300, Math.floor((GAME_W - 32 - (n - 1) * gap) / n));
+    const compact = cw < 280;
     const x0 = GAME_W / 2 - (n * cw + (n - 1) * gap) / 2;
     bossRegistry.forEach((b, i) => {
       const x = x0 + i * (cw + gap);
       const on = i === this.sel;
       const g = this.add.graphics();
       drawPanel(g, x, 74, cw, 196, { alpha: on ? 0.98 : 0.7, trim: on ? PAL.cleanseGold : undefined });
-      const thumb = this.add.image(x + 54, 220, b.thumbnailKey, 0).setOrigin(0.5, 1);
-      thumb.setScale(Math.min(1, 96 / Math.max(thumb.height, 1))).setAlpha(on ? 1 : 0.6);
+      const thumb = this.add.image(compact ? x + cw / 2 : x + 54, compact ? 146 : 220, b.thumbnailKey, 0).setOrigin(0.5, 1);
+      thumb.setScale(Math.min(1, (compact ? 64 : 96) / Math.max(thumb.height, 1))).setAlpha(on ? 1 : 0.6);
       const zone = this.add.zone(x, 74, cw, 196).setOrigin(0).setInteractive({ useHandCursor: true });
       zone.on('pointerdown', () => {
         if (this.sel === i) this.fight();
         else this.pick(i - this.sel);
       });
+      const tx = compact ? x + 10 : x + 110;
+      const ty = compact ? 150 : 88;
       this.card.add([
         g,
         thumb,
-        pxText(this, x + 110, 88, b.name, b.name.length > 10 ? 1.5 : 2, on ? PAL.cleanseGold : 0xc8c0d8),
-        pxText(this, x + 110, 110, b.title, 1, PAL.statusCyan),
-        pxText(this, x + 110, 130, `${STR.creative.hp} ${b.hp}   ${STR.creative.phases} ${b.phases}`, 1, 0xffffff),
-        pxText(this, x + 110, 146, `${STR.creative.bestTime} ${fmt(CreativeStore.bestTime(b.id))}  ${b.estimate}`, 1, PAL.cleanseGold),
-        pxText(this, x + 110, 166, b.description, 1, 0xd8d0e8).setMaxWidth(cw - 122),
+        pxText(this, tx, ty, b.name, b.name.length > 10 ? 1.5 : 2, on ? PAL.cleanseGold : 0xc8c0d8),
+        pxText(this, tx, ty + (compact ? 18 : 22), b.title, 1, PAL.statusCyan),
+        pxText(this, tx, ty + (compact ? 32 : 42), `${STR.creative.hp} ${b.hp}   ${STR.creative.phases} ${b.phases}`, 1, 0xffffff),
+        pxText(this, tx, ty + (compact ? 44 : 58), `${STR.creative.bestTime} ${fmt(CreativeStore.bestTime(b.id))}  ${b.estimate}`, 1, PAL.cleanseGold),
+        pxText(this, tx, ty + (compact ? 58 : 78), b.description, 1, 0xd8d0e8).setMaxWidth(compact ? cw - 20 : cw - 122),
         zone,
       ]);
     });

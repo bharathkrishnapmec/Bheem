@@ -38,6 +38,7 @@ import { Player } from '@/entities/player/Player';
 import type { Enemy } from '@/entities/enemies/Enemy';
 import type { Ally } from '@/entities/allies/Ally';
 import { Kaalasura } from '@/entities/boss/Kaalasura';
+import { Nishachara } from '@/entities/boss/Nishachara';
 import type { BossBase } from '@/entities/boss/BossBase';
 import type { BossPhase } from '@/logic/boss';
 import type { Banner } from '@/entities/world/Banner';
@@ -748,6 +749,7 @@ export class GameScene extends Phaser.Scene {
       if (e.isAlive()) e.step(dt);
     }
     if (w.boss?.active && w.boss.isAlive()) w.boss.step(dt);
+    for (const a of [...w.extraHostiles]) if (a.active && a.isAlive()) a.step(dt);
     w.proj.update(dt);
     w.loot.update(dt);
     w.spawner.update(dt);
@@ -948,6 +950,11 @@ export class GameScene extends Phaser.Scene {
               fightMs: Math.round(w.boss.fightMs),
               hellfire: w.boss instanceof Kaalasura ? w.boss.hellfireOn : false,
               banners: w.boss instanceof Kaalasura ? w.boss.bannerCount : 0,
+              x: Math.round(w.boss.x),
+              y: Math.round(w.boss.y),
+              clones: w.boss instanceof Nishachara ? w.boss.cloneCount : 0,
+              veiled: w.boss instanceof Nishachara ? w.boss.veiled : false,
+              lavaRise: w.hazards.lavaRise,
             }
           : null,
       guardHit: (n: number) => w.boss?.guardHit(n),

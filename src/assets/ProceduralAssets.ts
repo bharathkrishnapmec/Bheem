@@ -114,6 +114,7 @@ export function assetSteps(scene: Scene): { label: string; run: () => void }[] {
       run: () => {
         buildSheet(scene, 'boss', S.bossSheet());
         buildSheet(scene, 'garjana', S.garjanaSheet());
+        buildSheet(scene, 'nishachara', S.nishacharaSheet());
       },
     },
     {

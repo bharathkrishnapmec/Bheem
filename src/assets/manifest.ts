@@ -27,6 +27,7 @@ export const CHARACTER_KEYS = [
   'imp',
   'boss',
   'garjana',
+  'nishachara',
   'ally_spearman',
   'ally_archer',
   'ally_shieldbearer',
