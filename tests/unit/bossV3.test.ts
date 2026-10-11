@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { balance } from '@/config/balance';
 import { RNG } from '@/core/RNG';
-import { bossDamage, comboLength, crateDue, enrageMul, gapFor, hellfireEdge, phaseStartHp, telegraphMs } from '@/logic/boss';
+import { bossDamage, comboLength, summonDue, waveGapPx, crateDue, enrageMul, gapFor, hellfireEdge, phaseStartHp, telegraphMs } from '@/logic/boss';
 import { guardPoiseFor } from '@/logic/guard';
 import lavaForge from '@/level/arenas/lava_forge.level.json';
 
@@ -130,5 +130,36 @@ describe('Nishachara v3 tuning', () => {
     const top = Math.min(...L.lavaZones.map((r) => r.y));
     const lowest = Math.max(...L.solids.filter((s) => s.y > 0 && s.w < L.width).map((s) => s.y));
     expect(top - lowest - T.dryMargin).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('Brute Champion v3 tuning', () => {
+  const B = balance.bruteChampion;
+  const A = B.attacks;
+  it('900 HP, two phases split at 50 %, Guard 200 then 160, enrage at 2:30', () => {
+    const S = balance.bosses.stats.brute;
+    expect([S.hp, S.phases, S.guard, S.guardP2, S.enrageStartMs]).toEqual([900, 2, 200, 160, 150_000]);
+    expect(phaseStartHp(900, 2, [0.5])).toBe(450);
+  });
+  it('v3 damage and telegraph values, all under the ordinary cap', () => {
+    expect([A.slam.damage, A.slam.shockDamage, A.charge.damage, A.hammer.damage]).toEqual([28, 18, 25, 24]);
+    expect([A.slam.telegraphMs, A.charge.telegraphMs, A.hammer.telegraphMs, A.hammer.recoverMs, A.charge.wallStunMs]).toEqual([800, 700, 500, 1400, 1200]);
+    for (const v of [A.slam.damage, A.slam.shockDamage, A.charge.damage, A.hammer.damage]) expect(bossDamage(v)).toBe(v);
+    for (const a of Object.values(A)) expect(telegraphMs(a.telegraphMs, 2, a.ranged, 1)).toBeGreaterThanOrEqual(G.telegraphFloor.melee);
+  });
+  it('wall stun costs 80 Guard; Double Charge is two charges 0.8 s apart', () => {
+    expect(A.charge.wallGuard).toBe(80);
+    expect([A.doubleCharge.charges, A.doubleCharge.gapMs]).toEqual([2, 800]);
+  });
+  it('Shockwave Triple leaves at least 100 px between waves', () => {
+    expect(A.shockTriple.waves).toBe(3);
+    expect(waveGapPx(A.slam.shockSpeed, A.shockTriple.delayMs, A.slam.shockW)).toBeGreaterThanOrEqual(B.minWaveGapPx);
+  });
+  it('Berserk-only attacks are weighted only in phase 2; every third attack summons 2 Imps', () => {
+    expect(B.weights[1].doubleCharge + B.weights[1].shockTriple).toBe(0);
+    expect(B.weights[2].doubleCharge).toBeGreaterThan(0);
+    expect(B.weights[2].shockTriple).toBeGreaterThan(0);
+    expect([1, 2, 3, 4, 5, 6].map((n) => summonDue(n, B.summonEvery))).toEqual([false, false, true, false, false, true]);
+    expect(B.summonImps).toBe(2);
   });
 });

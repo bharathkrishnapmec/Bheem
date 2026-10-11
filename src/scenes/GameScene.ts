@@ -38,6 +38,7 @@ import { Player } from '@/entities/player/Player';
 import type { Enemy } from '@/entities/enemies/Enemy';
 import type { Ally } from '@/entities/allies/Ally';
 import { Kaalasura } from '@/entities/boss/Kaalasura';
+import { BruteChampion } from '@/entities/boss/BruteChampion';
 import { Nishachara } from '@/entities/boss/Nishachara';
 import type { BossBase } from '@/entities/boss/BossBase';
 import type { BossPhase } from '@/logic/boss';
@@ -955,6 +956,8 @@ export class GameScene extends Phaser.Scene {
               clones: w.boss instanceof Nishachara ? w.boss.cloneCount : 0,
               veiled: w.boss instanceof Nishachara ? w.boss.veiled : false,
               lavaRise: w.hazards.lavaRise,
+        berserk: w.boss instanceof BruteChampion ? w.boss.berserk : false,
+        imps: w.boss instanceof BruteChampion ? w.boss.impCount : 0,
             }
           : null,
       guardHit: (n: number) => w.boss?.guardHit(n),

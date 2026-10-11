@@ -108,3 +108,36 @@ test('creative: Nishachara from Boss Select, Lava Forge, clones in phase 2, resu
   await expect.poll(() => scene(page), { timeout: 20_000 }).toBe('CreativeResult');
   expect(errors).toEqual([]);
 });
+
+test('creative: Brute Champion from Boss Select, Berserk at 50 %, Imps on every third attack, result panel', async ({ page }) => {
+  test.setTimeout(150_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  await openSandbox(page);
+  await page.waitForTimeout(300);
+  await H(page, 'h.god()');
+  await page.keyboard.press('b');
+  await expect.poll(() => scene(page)).toBe('BossSelect');
+  const c = (await page.locator('canvas').boundingBox())!;
+  const card = () => page.locator('canvas').click({ position: { x: (837 / 960) * c.width, y: (170 / 540) * c.height } });
+  await card();
+  await page.waitForTimeout(200);
+  await card();
+  await expect.poll(() => H<string>(page, 'h.creative().bossStage'), { timeout: 8_000 }).toBe('fight');
+  expect(await H<number>(page, 'h.boss().max')).toBe(900);
+  await H(page, 'h.god()');
+  for (let i = 0; i < 100 && (await H<number>(page, 'h.boss().phase')) < 2; i++) {
+    await H(page, 'h.hitBoss(40)');
+    await page.waitForTimeout(30);
+  }
+  await expect.poll(() => H<boolean>(page, 'h.boss().berserk')).toBe(true);
+  await expect.poll(() => H<number>(page, 'h.boss().imps'), { timeout: 40_000 }).toBeGreaterThan(0);
+  const until = Date.now() + 60_000;
+  while (Date.now() < until && ((await H<{ hp: number } | null>(page, 'h.boss()'))?.hp ?? 0) > 0) {
+    await H(page, 'h.hitBoss(60)');
+    await page.waitForTimeout(40);
+  }
+  await expect.poll(() => scene(page), { timeout: 20_000 }).toBe('CreativeResult');
+  expect(errors).toEqual([]);
+});

@@ -1,6 +1,7 @@
 import { balance } from '@/config/balance';
 import { STR } from '@/config/strings';
 import type { BossBase } from '@/entities/boss/BossBase';
+import { BruteChampion } from '@/entities/boss/BruteChampion';
 import { Garjana } from '@/entities/boss/Garjana';
 import { Kaalasura } from '@/entities/boss/Kaalasura';
 import { Nishachara } from '@/entities/boss/Nishachara';
@@ -83,22 +84,18 @@ export const bossRegistry: readonly BossEntry[] = [
     boss: (w, x, y) => new Nishachara(w, x, y),
   },
   {
-    id: 'brute',
-    name: STR.creative.miniBoss,
-    title: STR.creative.miniBossTitle,
-    description: STR.creative.bossDesc.brute,
-    hp: Math.round(balance.enemies.brute.hp * 1.5),
-    phases: 1,
+    id: 'brute_mini',
+    name: STR.bruteChampion.name,
+    title: STR.bruteChampion.title,
+    description: STR.bruteChampion.desc,
+    hp: S.brute.hp,
+    phases: S.brute.phases,
     difficulty: S.brute.difficulty,
     estimate: estimate('brute'),
     thumbnailKey: 'brute',
     arenas: ['training_yard'],
     trialEligible: true,
-    factory: (w, x, y) => {
-      const e = w.spawner.spawnEnemy('brute', x, y, { elite: true, aggro: true, required: false });
-      if (!e) throw new Error('mini-boss spawn blocked by enemy cap');
-      return { actor: e, cinematic: false };
-    },
+    boss: (w, x, y) => new BruteChampion(w, x, y),
   },
 ];
 

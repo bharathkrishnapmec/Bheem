@@ -76,3 +76,13 @@ export function crateDue(sinceLastMs: number, onField: number, ultimateTelegraph
   const S = balance.bosses.sustain;
   return sinceLastMs >= S.crateEveryMs && onField < S.crateMax && !ultimateTelegraph;
 }
+
+/** Clear floor between two consecutive shockwaves fired delayMs apart (Brute Shockwave Triple). */
+export function waveGapPx(speed: number, delayMs: number, width: number): number {
+  return (speed * delayMs) / 1000 - width;
+}
+
+/** Brute Berserk: roar and summon on every Nth attack (1-based count). */
+export function summonDue(attackNo: number, every: number): boolean {
+  return attackNo > 0 && attackNo % every === 0;
+}

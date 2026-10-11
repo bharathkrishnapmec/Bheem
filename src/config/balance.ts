@@ -436,6 +436,31 @@ export const balance = {
     finalTakenMul: 1.5,
     shadowsFloorFrac: 0.04,
   },
+  /** Brute Champion mini-boss (Boss Buff v3 §B7). Damage values are the v3 numbers (scale already applied). */
+  bruteChampion: {
+    bodyW: 46,
+    bodyH: 70,
+    run: 88,
+    berserkRun: 110,
+    slamRange: 120,
+    chargeMinRange: 170,
+    attacks: {
+      slam: { telegraphMs: 800, ranged: false, recoverMs: 1400, damage: 28, w: 130, h: 80, knockback: 380, shockDamage: 18, shockSpeed: 480, shockRange: 300, shockW: 24, shockH: 60 },
+      charge: { telegraphMs: 700, ranged: false, recoverMs: 800, damage: 25, speed: 462, maxMs: 900, knockback: 360, wallStunMs: 1200, wallGuard: 80 },
+      hammer: { telegraphMs: 500, ranged: false, recoverMs: 1400, damage: 24, backhandMs: 380, w: 120, h: 80, knockback: 300 },
+      doubleCharge: { telegraphMs: 700, ranged: false, recoverMs: 900, gapMs: 800, charges: 2 },
+      shockTriple: { telegraphMs: 800, ranged: false, recoverMs: 1300, waves: 3, delayMs: 300 },
+    },
+    weights: {
+      1: { slam: 3, charge: 2, hammer: 3, doubleCharge: 0, shockTriple: 0 },
+      2: { slam: 2, charge: 1, hammer: 2, doubleCharge: 3, shockTriple: 3 },
+    },
+    minWaveGapPx: 100,
+    summonEvery: 3,
+    summonImps: 2,
+    maxImps: 4,
+    roarMs: 700,
+  },
   bosses: {
     global: {
       damageScale: 1.25,

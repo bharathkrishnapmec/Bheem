@@ -40,3 +40,11 @@
 - **Simulator calibration.** `bosses.sim.brokenUptimeMul = 1.87` makes the mid-skill Guard modifier ≈ 1.0, matching v3's "tuned neutral" note. `lostMsPerPhase` models windows lost to ward, flight, Veil, etc. These are model assumptions, not measured data.
 - **Last Stand floor.** Before Last Stand has triggered, Kaalasura can't take more damage than leaves him at 5 % HP (`lastStand.floorFrac`), so one big hit can't skip the ultimate. He takes no damage during the Last Stand roar/summon window.
 - **Story phase checkpoints.** Dying in the Story boss fight offers "Retry from phase N": the hero comes back with full resources, the boss starts at that phase's HP, and deaths and playtime carry over.
+
+## Brute Champion (v3 §B7)
+- New `BruteChampion` (BossBase) replaces the plain elite Brute entry in Boss Select; registry id is `brute_mini` (v3 §B8). Story's elite Brutes keep the ordinary enemy AI.
+- Arena: Training Yard only. Courtyard loads the same Creative arena, so listing both would show a duplicate picker entry.
+- Hammer Combo: both hits deal 24; the 500 ms telegraph precedes the slam and the backhand has its own 380 ms flashing windup (above the 350 ms melee floor).
+- Shockwave Triple: three shockwaves each way, fired 300 ms apart at 480 px/s, leaving a 120 px clear gap (≥ 100 px).
+- Every third Berserk attack roars and summons 2 Imps, capped at 4 alive.
+- Double Charge: a wall hit on the first charge stuns (1.2 s, Guard −80) and cancels the second.

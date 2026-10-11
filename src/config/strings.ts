@@ -33,12 +33,9 @@ export const STR = {
     phases: 'Phases',
     bestTime: 'Best time',
     none: '--',
-    miniBoss: 'ELITE BRUTE',
-    miniBossTitle: 'Mini-Boss',
     estimate: (a: number, b: number) => `~${a}-${b} min`,
     bossDesc: {
       kaalasura: 'Four phases. Warbanners, Hollow Echoes, Dark Rain, Hellfire and a Last Stand.',
-      brute: 'An elite Brute with armoured slams and charges. Uses the Story AI and stats.',
     },
     toolbox: 'Toolbox',
     god: 'God Mode',
@@ -141,6 +138,14 @@ export const STR = {
     judgmentTip: 'Stand on a glowing pad!',
     perfect: 'PERFECT DEFLECT',
     hawksDown: 'Hawks down: barrier open!',
+  },
+  bruteChampion: {
+    name: 'BRUTE CHAMPION',
+    title: 'the Iron Hammer',
+    desc: 'Training Yard. Slams, charges and a Berserk phase that calls Imps. Bait a charge into a wall.',
+    phases: ['Champion', 'Berserk'],
+    berserk: 'BERSERK!',
+    wallTip: 'Charged into the wall: hit him while he is stunned!',
   },
   nishachara: {
     name: 'NISHACHARA',
