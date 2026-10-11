@@ -1,6 +1,6 @@
 import { balance } from '@/config/balance';
 import type { ArenaId } from '@/level/levelSchema';
-export type GameMode = 'story' | 'creative';
+export type GameMode = 'story' | 'creative' | 'trial';
 
 export interface Modifiers {
   godMode: boolean;
@@ -64,6 +64,17 @@ export const GameContext = {
     }
     this.mode = 'creative';
     this.start = start;
+  },
+  /** Boss Trials: fixed rules, no modifiers, Normal strength (v2 §A4.2). */
+  enterTrial(start: CreativeStart): void {
+    this.mode = 'trial';
+    this.modifiers = storyModifiers();
+    this.slowMo = 1;
+    this.start = start;
+    this.bossStrength = normalStrength();
+  },
+  get trial(): boolean {
+    return this.mode === 'trial';
   },
   get creative(): boolean {
     return this.mode === 'creative';

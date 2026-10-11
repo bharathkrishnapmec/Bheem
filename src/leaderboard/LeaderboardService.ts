@@ -79,6 +79,16 @@ export class LeaderboardService {
       return { status: 'queued' };
     }
   }
+  /** Explicit global submit from a result panel; local best is recorded separately. */
+  async submitRemote(ticket: RunTicket, result: RunResult): Promise<SubmitOutcome> {
+    if (!this.remote || ticket.token === 'local') return { status: 'rejected', reason: 'offline' };
+    try {
+      return await this.remote.submit(ticket, result, this.name);
+    } catch {
+      this.queue.push(ticket, result, this.name);
+      return { status: 'queued' };
+    }
+  }
   /** Retry queued submissions (app start and `online` event). */
   flush(): Promise<SubmitOutcome[]> {
     const r = this.remote;

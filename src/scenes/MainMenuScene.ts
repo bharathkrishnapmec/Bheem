@@ -58,6 +58,9 @@ export class MainMenuScene extends Phaser.Scene {
     }
     this.buttons.push(new PixelButton(this, GAME_W / 2, y, 260, 44, STR.menu.creative, () => this.openCreative()));
     y += 52;
+    this.buttons.push(new PixelButton(this, GAME_W / 2 - 66, y, 126, 44, STR.menu.trials, () => this.openScene('Trials'), { scale: 1 }));
+    this.buttons.push(new PixelButton(this, GAME_W / 2 + 66, y, 126, 44, STR.menu.leaderboard, () => this.openScene('Leaderboard'), { scale: 1 }));
+    y += 52;
     this.buttons.push(new PixelButton(this, GAME_W / 2, y, 260, 44, STR.menu.settings, () => this.openSettings()));
     this.nav = new ButtonNav(this.buttons);
     const best = SaveManager.get().bestClear;
@@ -93,6 +96,14 @@ export class MainMenuScene extends Phaser.Scene {
     AudioManager.unlock();
     if (Device.isTouch()) void Device.enterFullscreenLandscape();
     this.scene.start('CreativeMenu');
+  }
+
+  private openScene(key: string): void {
+    if (this.locked) return;
+    this.locked = true;
+    AudioManager.unlock();
+    if (Device.isTouch()) void Device.enterFullscreenLandscape();
+    this.scene.start(key);
   }
 
   private openSettings(): void {

@@ -28,7 +28,7 @@ const fmt = (ms: number | null): string => {
 };
 const cycle = <T>(list: readonly T[], v: T, d: number): T => list[(list.indexOf(v) + d + list.length) % list.length]!;
 
-abstract class MenuScene extends Phaser.Scene {
+export abstract class MenuScene extends Phaser.Scene {
   protected inp!: InputManager;
   protected menu!: MenuList;
   protected backdrop(): void {

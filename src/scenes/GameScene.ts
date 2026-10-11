@@ -1,3 +1,7 @@
+import { RunSession } from '@/leaderboard/RunSession';
+import { Leaderboard } from '@/leaderboard/LeaderboardService';
+import type { RunResult, RunTicket } from '@/shared/types';
+import { trialBoard } from '@/modes/trials/trial';
 import Phaser from 'phaser';
 import type { EnemyType } from '@/core/types';
 import { Quality } from '@/platform/Quality';
@@ -10,7 +14,7 @@ import { STR } from '@/config/strings';
 import { GameEvents, type GameEventMap } from '@/core/GameEvents';
 import { ScoreSystem } from '@/systems/ScoreSystem';
 import { GameContext, type CreativeStart } from '@/modes/creative/GameContext';
-import { CreativeController, FULL_SQUAD } from '@/modes/creative/CreativeController';
+import { CreativeController, FULL_SQUAD, TRIAL_SQUAD, TRIAL_UPGRADES } from '@/modes/creative/CreativeController';
 import { CreativeStore } from '@/modes/creative/CreativeStore';
 import { bossById } from '@/modes/creative/bossRegistry';
 import type { Actor } from '@/entities/Actor';
@@ -132,6 +136,8 @@ export class GameScene extends Phaser.Scene {
   private shrines: Shrine[] = [];
   private bossGate: Gate | null = null;
   creativeCtl: CreativeController | null = null;
+  private trialRun: RunSession | null = null;
+  private trialTicket: Promise<RunTicket> | null = null;
   private miniBoss: Actor | null = null;
   private pendingResult: Record<string, unknown> | null = null;
   private resultAt = 0;
@@ -156,10 +162,11 @@ export class GameScene extends Phaser.Scene {
     super('Game');
   }
 
-  create(data: { continue?: boolean; creative?: CreativeStart; bossPhase?: BossPhase }): void {
+  create(data: { continue?: boolean; creative?: CreativeStart; bossPhase?: BossPhase; trial?: boolean }): void {
     const creative = !!data.creative;
     this.bossRetryPhase = undefined;
-    if (data.creative) GameContext.enterCreative(data.creative);
+    if (data.creative && data.trial) GameContext.enterTrial(data.creative);
+    else if (data.creative) GameContext.enterCreative(data.creative);
     else GameContext.enterStory();
     this.simMs = 0;
     this.fightStartMs = -1;
@@ -177,9 +184,9 @@ export class GameScene extends Phaser.Scene {
     const totalCaptives = level.districts.reduce((n, d) => n + d.captives.length, 0);
     GameStore.reset({
       coins: prog?.coins ?? 0,
-      upgrades: creative ? CreativeController.loadout().upgrades : prog ? { ...prog.upgrades } : undefined,
-      rescued: creative ? FULL_SQUAD : (prog?.rescued.length ?? 0),
-      totalCaptives: creative ? FULL_SQUAD : totalCaptives,
+      upgrades: creative ? (data.trial ? { ...TRIAL_UPGRADES } : CreativeController.loadout().upgrades) : prog ? { ...prog.upgrades } : undefined,
+      rescued: creative ? (data.trial ? TRIAL_SQUAD : FULL_SQUAD) : (prog?.rescued.length ?? 0),
+      totalCaptives: creative ? (data.trial ? TRIAL_SQUAD : FULL_SQUAD) : totalCaptives,
       deaths: prog?.deaths ?? 0,
       playtimeMs: prog?.playtimeMs ?? 0,
       kills: prog?.kills ?? 0,
@@ -299,6 +306,16 @@ export class GameScene extends Phaser.Scene {
     GameEvents.on('app:background', onBackground);
     const score = new ScoreSystem(() => ({ x: this.w.player.x, y: this.w.player.y - 70 }), !creative);
     this.creativeCtl = creative ? new CreativeController(w, level.playerStart) : null;
+    this.trialRun = null;
+    this.trialTicket = null;
+    if (GameContext.trial && GameContext.start?.kind === 'boss') {
+      const board = trialBoard(GameContext.start.bossId);
+      const run = (this.trialRun = new RunSession(board, performance.now()));
+      this.trialTicket = Leaderboard.startRun(board);
+      const vis = () => run.setHidden(document.hidden, performance.now());
+      document.addEventListener('visibilitychange', vis);
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => document.removeEventListener('visibilitychange', vis));
+    }
     if (creative) TimeController.setBaseScale(GameContext.slowMo);
     const onPhase = () => this.updateLighting();
     GameEvents.on('boss:phase', onPhase);
@@ -457,6 +474,10 @@ export class GameScene extends Phaser.Scene {
     this.dying = true;
     const w = this.w;
     AudioManager.play('playerDeath');
+    if (this.creativeCtl && GameContext.trial) {
+      GameEvents.emit('fx:desaturate', { amount: 1, ms: 600 });
+      return this.finishTrial(false, 900);
+    }
     if (this.creativeCtl) {
       GameEvents.emit('fx:desaturate', { amount: 1, ms: 600 });
       this.time.delayedCall(900, () => {
@@ -496,7 +517,7 @@ export class GameScene extends Phaser.Scene {
   private retry(): void {
     this.scene.stop('Pause');
     this.scene.stop('GameOver');
-    this.scene.start('Game', GameContext.creative && GameContext.start ? { creative: GameContext.start } : { continue: true, bossPhase: this.bossRetryPhase });
+    this.scene.start('Game', (GameContext.creative || GameContext.trial) && GameContext.start ? { creative: GameContext.start, trial: GameContext.trial } : { continue: true, bossPhase: this.bossRetryPhase });
   }
 
   private startBoss(opts: { skipIntro?: boolean; phase?: 1 | 2 | 3 | 4; make?: (w: World, x: number, y: number) => BossBase } = {}): void {
@@ -577,6 +598,7 @@ export class GameScene extends Phaser.Scene {
   private finishCreativeFight(delayMs: number): void {
     const ctl = this.creativeCtl;
     if (!ctl) return;
+    if (GameContext.trial) return this.finishTrial(true, delayMs);
     ctl.fighting = false;
     const bossId = bossById(GameContext.start?.bossId).id;
     const stats = { ...ctl.stats };
@@ -584,6 +606,27 @@ export class GameScene extends Phaser.Scene {
     this.pendingResult = { ...stats, bossId, newBest };
     this.resultAt = this.time.now;
     this.time.delayedCall(delayMs, () => this.showCreativeResult());
+  }
+
+  /** Trial end: the clock already stopped at the killing blow (or death); local best is recorded, global submit is opt-in. */
+  private finishTrial(won: boolean, delayMs: number): void {
+    const ctl = this.creativeCtl;
+    const run = this.trialRun;
+    const ticket = this.trialTicket;
+    if (!ctl || !run || !ticket) return;
+    ctl.fighting = false;
+    this.trialRun = null;
+    const flags = run.check({ mode: GameContext.mode, modifiers: GameContext.modifiers as unknown as Record<string, unknown>, search: location.search, balanceOverride: false }, performance.now());
+    const result: RunResult = { mode: 'trial', timeMs: Math.round(ctl.stats.timeMs), hitsTaken: ctl.stats.hitsTaken };
+    const tainted = flags.length > 0;
+    const local = won ? ticket.then((t) => Leaderboard.local.submit(t, result, Leaderboard.name, tainted)) : null;
+    const data = { won, board: run.board, result, tainted, ticket, local };
+    this.time.delayedCall(delayMs, () => {
+      this.cinematic = false;
+      this.w.player.lock(false);
+      this.scene.pause();
+      this.scene.launch('TrialResult', data);
+    });
   }
 
   private skipCreativeResult(): void {
@@ -731,9 +774,11 @@ export class GameScene extends Phaser.Scene {
     if (st.pausePressed && this.openPause()) return;
     if (this.creativeCtl) {
       if (this.pendingResult && this.time.now - this.resultAt > 400 && (st.attackPressed || st.confirm || st.jumpPressed)) return this.skipCreativeResult();
-      if (st.resetPressed) this.creativeReset();
-      if (st.toolboxPressed && this.openToolbox()) return;
-      if (st.bossSelectPressed) return this.openBossSelect();
+      if (!GameContext.trial) {
+        if (st.resetPressed) this.creativeReset();
+        if (st.toolboxPressed && this.openToolbox()) return;
+        if (st.bossSelectPressed) return this.openBossSelect();
+      }
     }
     const p = w.player;
     p.in = this.cinematic || this.dying ? emptyInput() : st;
