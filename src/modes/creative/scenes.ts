@@ -209,7 +209,7 @@ export class BossSelectScene extends MenuScene {
         thumb,
         pxText(this, tx, ty, b.name, b.name.length > 10 ? 1.5 : 2, on ? PAL.cleanseGold : 0xc8c0d8),
         pxText(this, tx, ty + (compact ? 18 : 22), b.title, 1, PAL.statusCyan),
-        pxText(this, tx, ty + (compact ? 32 : 42), `${STR.creative.hp} ${Math.max(1, Math.round(b.hp * effectiveBossStrength().hpMul))}   ${STR.creative.phases} ${b.phases}`, 1, 0xffffff),
+        pxText(this, tx, ty + (compact ? 32 : 42), `${STR.creative.hp} ${Math.max(1, Math.round(b.hp * effectiveBossStrength(GameContext.bossStrength).hpMul))}   ${STR.creative.phases} ${b.phases}`, 1, 0xffffff),
         pxText(this, tx, ty + (compact ? 44 : 58), `${STR.creative.bestTime} ${fmt(CreativeStore.bestTime(b.id))}  ${b.estimate}`, 1, PAL.cleanseGold),
         pxText(this, tx, ty + (compact ? 58 : 78), b.description, 1, 0xd8d0e8).setMaxWidth(compact ? cw - 20 : cw - 122),
         zone,

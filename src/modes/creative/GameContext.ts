@@ -82,8 +82,8 @@ export const GameContext = {
 };
 
 /** Multipliers bosses actually use: Normal outside Creative, preset × sliders inside it. */
-export function effectiveBossStrength(): { hpMul: number; dmgMul: number; enrageShiftMs: number; normal: boolean } {
-  const s = GameContext.creative ? GameContext.bossStrength : normalStrength();
+/** Strength a boss spawns with; pass `s` to preview a Creative setting regardless of the current mode. */
+export function effectiveBossStrength(s: BossStrength = GameContext.creative ? GameContext.bossStrength : normalStrength()): { hpMul: number; dmgMul: number; enrageShiftMs: number; normal: boolean } {
   const p = balance.bosses.presets[s.preset];
   return { hpMul: p.hpMul * s.hpMul, dmgMul: p.dmgMul * s.dmgMul, enrageShiftMs: p.enrageShiftMs, normal: s.preset === 'normal' && s.hpMul === 1 && s.dmgMul === 1 };
 }

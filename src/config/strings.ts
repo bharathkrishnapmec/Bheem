@@ -33,6 +33,7 @@ export const STR = {
     submitting: 'Submitting...',
   },
   board: {
+    practice: 'PRACTICE',
     title: 'Leaderboard',
     board: 'Board',
     period: 'Period',

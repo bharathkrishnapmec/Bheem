@@ -39,7 +39,14 @@ test('trials: Brute from the menu, toolbox locked, death ends the attempt, retry
   await expect.poll(() => scene(page), { timeout: 10_000 }).toBe('TrialResult');
   await page.screenshot({ path: 'test-results/trial-failed.png' });
   expect(await local(page)).toEqual({});
+  expect(await page.evaluate(() => {
+    const m = (window as unknown as { __GAME__: { scene: { getIndex: (k: string) => number } } }).__GAME__.scene;
+    return m.getIndex('TrialResult') > m.getIndex('UI');
+  })).toBe(true);
   const c = (await page.locator('canvas').boundingBox())!;
+  await page.locator('canvas').click({ position: { x: 0.5 * c.width, y: (260 / 540) * c.height } });
+  await page.waitForTimeout(600);
+  expect(await scene(page)).toBe('TrialResult');
   await page.locator('canvas').click({ position: { x: 0.5 * c.width, y: (304 / 540) * c.height } });
   await expect.poll(() => H<string>(page, 'h.creative().bossStage'), { timeout: 8_000 }).toBe('fight');
   expect(errors).toEqual([]);
@@ -58,5 +65,10 @@ test('trials: clean win records a ranked local best; ?debug run is practice only
   await killBoss(page);
   await expect.poll(async () => (await local(page))['trial_brute|all']?.length ?? 0).toBe(2);
   expect((await local(page))['trial_brute|all']!.some((r) => r.practice)).toBe(true);
+  const c = (await page.locator('canvas').boundingBox())!;
+  await page.locator('canvas').click({ position: { x: 0.5 * c.width, y: (392 / 540) * c.height } });
+  await expect.poll(() => scene(page)).toBe('Leaderboard');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'test-results/leaderboard-practice.png' });
   expect(errors).toEqual([]);
 });

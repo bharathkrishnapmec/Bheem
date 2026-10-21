@@ -70,6 +70,7 @@ export class MenuList {
       const zone = scene.add.zone(0, i * sp + (sc * 10) / 2, opts.width + 40, sp - 4).setInteractive({ useHandCursor: true });
       zone.on('pointerover', () => this.select(i));
       zone.on('pointerdown', (p: Phaser.Input.Pointer) => {
+        if (it.enabled?.() === false) return;
         this.select(i);
         const lx = p.x - this.container.x;
         if (it.onRight && !it.onConfirm) {
