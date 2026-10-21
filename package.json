@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "boss:sim": "vite-node tools/bossSim.ts",
-    "check:secrets": "node -e \"const fs=require('fs'),path=require('path');const bad=[];const walk=d=>fs.readdirSync(d).forEach(n=>{const q=path.join(d,n);fs.statSync(q).isDirectory()?walk(q):/RUN_TOKEN_SECRET|ADMIN_KEY/.test(fs.readFileSync(q,'utf8'))&&bad.push(q)});walk('dist');if(bad.length){console.error('secret names in bundle:',bad);process.exit(1)}\""
+    "check:secrets": "node -e \"const fs=require('fs'),path=require('path');const bad=[];const walk=d=>fs.readdirSync(d).forEach(n=>{const q=path.join(d,n);fs.statSync(q).isDirectory()?walk(q):/RUN_TOKEN_SECRET|ADMIN_KEY/.test(fs.readFileSync(q,'utf8'))&&bad.push(q)});walk('dist');if(bad.length){console.error('secret names in bundle:',bad);process.exit(1)}\"",
+    "media": "playwright test -c playwright.media.config.ts"
   },
   "dependencies": {
     "phaser": "3.90.0"
