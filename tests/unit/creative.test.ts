@@ -68,3 +68,13 @@ describe('Creative boss strength (v3 §B2.4)', () => {
     expect(stepMul(0.25, -1, C.dmgMulMin, C.dmgMulMax, C.step)).toBe(0);
   });
 });
+
+describe('Boss Select strength preview', () => {
+  it('previews the stored Creative strength while the live mode stays Normal', () => {
+    GameContext.mode = 'trial' as typeof GameContext.mode;
+    GameContext.bossStrength = { preset: 'legendary', hpMul: 1, dmgMul: 1 };
+    expect(effectiveBossStrength().hpMul).toBe(1);
+    expect(900 * effectiveBossStrength(GameContext.bossStrength).hpMul).toBe(1350);
+    GameContext.enterStory();
+  });
+});

@@ -80,6 +80,7 @@ export class TrialResultScene extends MenuScene {
   }
   create(d: TrialResultData): void {
     this.submitted = false;
+    this.scene.bringToTop();
     this.add.rectangle(0, 0, GAME_W, 540, 0x05040a, 0.6).setOrigin(0);
     drawPanel(this.add.graphics(), GAME_W / 2 - 240, 40, 480, 470, { alpha: 0.96, trim: d.won ? PAL.cleanseGold : PAL.danger });
     pxText(this, GAME_W / 2, 56, d.won ? STR.trials.victory : STR.trials.defeat, 3, d.won ? PAL.cleanseGold : PAL.danger).setOrigin(0.5, 0);
@@ -138,6 +139,8 @@ export class TrialResultScene extends MenuScene {
   }
 }
 
+const PRACTICE = ' (practice)';
+
 const boardName = (id: BoardId): string => {
   const b = boardDef(id)!;
   if (!b.boss) return STR.board.story;
@@ -189,11 +192,14 @@ export class LeaderboardScene extends MenuScene {
   private row(y: number, e: Entry, trial: boolean, you = false): void {
     const medal = [PAL.cleanseGold, 0xc8d0e0, 0xd08850][e.rank - 1];
     const col = you ? PAL.ember : (medal ?? 0xffffff);
+    const practice = e.name.endsWith(PRACTICE);
+    const cx = GAME_W / 2;
     this.list.add([
-      pxText(this, GAME_W / 2 - 260, y, `${you ? STR.board.you + ' ' : ''}#${e.rank}`, 2, col),
-      pxText(this, GAME_W / 2 - 150, y, e.name, 2, col),
-      pxText(this, GAME_W / 2 + 160, y, trial ? fmtMs(e.value) : String(e.value), 2, col).setOrigin(1, 0),
-      pxText(this, GAME_W / 2 + 260, y, trial ? `${e.hits ?? 0} hits` : '', 1, 0xb8b0c8).setOrigin(1, 0),
+      pxText(this, cx - 300, y, `${you ? STR.board.you + ' ' : ''}#${e.rank}`, 2, col),
+      pxText(this, cx - 180, y, practice ? e.name.slice(0, -PRACTICE.length) : e.name, 2, col),
+      pxText(this, cx + 200, y, trial ? fmtMs(e.value) : String(e.value), 2, col).setOrigin(1, 0),
+      pxText(this, cx + 300, y, trial ? `${e.hits ?? 0} hits` : '', 1, 0xb8b0c8).setOrigin(1, 0),
+      pxText(this, cx + 300, y + 13, practice ? STR.board.practice : '', 1, PAL.statusCyan).setOrigin(1, 0),
     ]);
   }
   private reload(): void {
