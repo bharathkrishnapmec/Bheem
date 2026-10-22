@@ -94,7 +94,9 @@ export class CameraDirector {
   /** dt = real ms (camera keeps moving during hit-stop, slightly). */
   update(dt: number, instant = false): void {
     const c = balance.camera;
-    const k = Math.min(1, dt / 16.67);
+    const k = Math.min(dt, 100) / 16.67;
+    /** Per-60Hz-frame lerp converted to this frame's dt, so follow speed is identical at any frame rate. */
+    const ease = (l: number) => 1 - Math.pow(1 - Math.min(l, 1), k);
     for (const key of ['x0', 'x1', 'y0', 'y1'] as const) {
       const d = this.goal[key] - this.bounds[key];
       this.bounds[key] += instant ? d : d * Math.min(1, (dt / c.boundsTransitionMs) * 4);
@@ -104,8 +106,8 @@ export class CameraDirector {
     if (this.focus) {
       tx = this.focus.x;
       ty = this.focus.y;
-      this.fx += (tx - this.fx) * (instant ? 1 : this.focusLerp * k);
-      this.fy += (ty - this.fy) * (instant ? 1 : this.focusLerp * k);
+      this.fx += (tx - this.fx) * (instant ? 1 : ease(this.focusLerp));
+      this.fy += (ty - this.fy) * (instant ? 1 : ease(this.focusLerp));
     } else if (this.target) {
       const t = this.target;
       const wantLook = Math.abs(t.vx) > 20 ? Math.sign(t.vx) * c.lookAhead : t.facing * c.lookAhead * 0.5;
@@ -125,8 +127,8 @@ export class CameraDirector {
       if (tx < gx - dzw) gx = tx + dzw;
       if (ty > gy + dzh) gy = ty - dzh;
       if (ty < gy - dzh) gy = ty + dzh;
-      this.fx += (gx - this.fx) * (instant ? 1 : c.lerpX * k * 1.4);
-      this.fy += (gy - this.fy) * (instant ? 1 : c.lerpY * k * 1.4);
+      this.fx += (gx - this.fx) * (instant ? 1 : ease(c.lerpX * 1.4));
+      this.fy += (gy - this.fy) * (instant ? 1 : ease(c.lerpY * 1.4));
     }
     const z = this.cam.zoom;
     const vw = GAME_W / z;
