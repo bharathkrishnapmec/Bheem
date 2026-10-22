@@ -15,6 +15,11 @@ export interface SheetInfo {
 }
 /** Frame sizes (logical px) of generated sheets, used by entities to align bodies. */
 export const SHEETS: Record<string, SheetInfo> = {};
+/**
+ * CPU copy of each generated sheet, captured while the canvas is still CPU-side. Death dissolves read
+ * pixels from here; reading back a canvas after WebGL has uploaded it stalls the main thread for ~0.5 s.
+ */
+export const SHEET_PIXELS = new Map<string, ImageData>();
 
 function addCanvasTexture(scene: Scene, key: string, canvas: HTMLCanvasElement): Phaser.Textures.CanvasTexture | null {
   if (scene.textures.exists(key)) scene.textures.remove(key);
@@ -44,8 +49,9 @@ export function buildSheet(scene: Scene, key: string, spec: S.SheetSpec, scale =
   const canvas = document.createElement('canvas');
   canvas.width = cols * fw;
   canvas.height = rows * fh;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   frames.forEach((f, i) => f.draw(ctx, (i % cols) * fw, Math.floor(i / cols) * fh, scale));
+  SHEET_PIXELS.set(key, ctx.getImageData(0, 0, canvas.width, canvas.height));
   const tex = addCanvasTexture(scene, key, canvas);
   if (!tex) return;
   frames.forEach((_f, i) => tex.add(i, 0, (i % cols) * fw, Math.floor(i / cols) * fh, fw, fh));

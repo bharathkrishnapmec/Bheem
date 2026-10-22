@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { RefreshRate } from '@/platform/RefreshRate';
 import { BG_COLOR, GAME_H, GAME_W } from '@/config/gameConfig';
 import { balance } from '@/config/balance';
 import { STR } from '@/config/strings';
@@ -55,6 +56,7 @@ else {
   });
   (window as unknown as { __GAME__: Phaser.Game }).__GAME__ = game;
   installLifecycle();
+  RefreshRate.start();
   TouchControls.mount();
 }
 

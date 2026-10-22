@@ -6,6 +6,7 @@ import Phaser from 'phaser';
 import type { EnemyType } from '@/core/types';
 import { Quality } from '@/platform/Quality';
 import { FpsMonitor } from '@/core/FpsMonitor';
+import { RefreshRate } from '@/platform/RefreshRate';
 import { TouchControls } from '@/ui/touch/TouchControls';
 import { BG_COLOR, GAME_H, GAME_W } from '@/config/gameConfig';
 import { balance } from '@/config/balance';
@@ -202,6 +203,7 @@ export class GameScene extends Phaser.Scene {
     }
     const liberated = new Set<DistrictId>(level.districts.filter((d) => prog?.districtStates[d.id] === 'liberated').map((d) => d.id));
 
+    this.physics.world.setFPS(RefreshRate.hz);
     this.physics.world.setBounds(0, -400, level.width, level.height + 800);
     this.physics.world.setBoundsCollision(true, true, false, false);
     this.cameras.main.setBackgroundColor(BG_COLOR);

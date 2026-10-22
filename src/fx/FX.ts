@@ -4,6 +4,7 @@ import { balance } from '@/config/balance';
 import { PAL } from '@/config/palette';
 import { GameEvents } from '@/core/GameEvents';
 import { pxText } from '@/ui/text';
+import { SHEET_PIXELS } from '@/assets/ProceduralAssets';
 
 interface Dust {
   x: number;
@@ -88,21 +89,12 @@ export class FX {
     const hit = this.sampleCache.get(ck);
     if (hit) return hit;
     const out: { x: number; y: number; c: number }[] = [];
-    const src = frame.source.image as HTMLCanvasElement | HTMLImageElement;
-    let ctx: CanvasRenderingContext2D | null = null;
-    if (src instanceof HTMLCanvasElement) ctx = src.getContext('2d', { willReadFrequently: true });
-    else {
-      const c = document.createElement('canvas');
-      c.width = src.width;
-      c.height = src.height;
-      ctx = c.getContext('2d');
-      ctx?.drawImage(src, 0, 0);
-    }
-    if (ctx) {
-      const d = ctx.getImageData(frame.cutX, frame.cutY, frame.cutWidth, frame.cutHeight).data;
+    const px = SHEET_PIXELS.get(key) ?? readPixels(frame.source.image as HTMLCanvasElement | HTMLImageElement);
+    if (px) {
+      const d = px.data;
       for (let y = 0; y < frame.cutHeight; y += 2)
         for (let x = 0; x < frame.cutWidth; x += 2) {
-          const i = (y * frame.cutWidth + x) * 4;
+          const i = ((frame.cutY + y) * px.width + frame.cutX + x) * 4;
           if (d[i + 3]! > 100) out.push({ x, y, c: (d[i]! << 16) | (d[i + 1]! << 8) | d[i + 2]! });
         }
     }
@@ -289,4 +281,21 @@ export class FX {
     for (let i = 0; i < a.length; i += 2) out.push(new Phaser.Math.Vector2(a[i], a[i + 1]));
     return out;
   }
+}
+
+/** Fallback for textures that are not generated sheets (external art, generateTexture). Copies once per source. */
+const extraPixels = new WeakMap<object, ImageData | null>();
+function readPixels(src: HTMLCanvasElement | HTMLImageElement): ImageData | null {
+  if (extraPixels.has(src)) return extraPixels.get(src)!;
+  const c = document.createElement('canvas');
+  c.width = src.width;
+  c.height = src.height;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  let out: ImageData | null = null;
+  if (ctx && c.width > 0 && c.height > 0) {
+    ctx.drawImage(src, 0, 0);
+    out = ctx.getImageData(0, 0, c.width, c.height);
+  }
+  extraPixels.set(src, out);
+  return out;
 }
