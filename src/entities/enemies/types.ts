@@ -289,8 +289,8 @@ export class SkyCaller extends Enemy {
     if (adx > S.keepMax) vx = Math.sign(t.x - this.x);
     else if (adx < S.keepMin) vx = -Math.sign(t.x - this.x);
     const nx = this.x + vx * 20;
-    const b = this.world.districts.current()?.bounds;
-    if (b && (nx < b.x0 + 40 || nx > b.x1 - 40)) vx = 0;
+    const b = this.world.districts.current()?.bounds ?? { x0: 0, x1: this.world.level.width };
+    if (nx < b.x0 + 40 || nx > b.x1 - 40) vx = 0;
     this.body.setVelocityX(vx * this.speed * this.speedMul());
     this.anim('fly');
     const live = [...this.summons].filter((s) => s.isAlive()).length;

@@ -114,7 +114,8 @@ export class UIScene extends Phaser.Scene {
 
     // top
     this.districtText = pxText(this, 16, 12, '', 1, PAL.cleanseGold);
-    this.scoreText = pxText(this, GAME_W / 2, 20, '0', 2, PAL.cleanseGold).setOrigin(0.5, 0);
+    // top-right on desktop so long objective lines never run under it; centred under the strip on touch
+    this.scoreText = pxText(this, GAME_W - 16, 20, '0', 2, PAL.cleanseGold).setOrigin(1, 0);
     this.creativeHud = null;
     this.styleText = null;
     if (GameContext.creative) this.buildCreativeHud();
@@ -185,9 +186,9 @@ export class UIScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.offs.forEach((f) => f()));
   }
 
-  /** Toasts and the Creative style counter sit below the boss bar while it is shown. */
+  /** Toasts sit below the boss bar (and the Creative style counter under it) while it is shown. */
   private toastTop(): number {
-    return this.bossOn ? 128 : 90;
+    return this.bossOn ? 138 : 90;
   }
 
   private toast(text: string, color: number): void {
@@ -211,6 +212,10 @@ export class UIScene extends Phaser.Scene {
 
   private card(title: string, sub: string, ms: number): void {
     this.tweens.killTweensOf([this.cardTitle, this.cardSub]);
+    // with the boss bar up, toasts stack from y=138, so the card drops below them
+    const cy = this.bossOn ? GAME_H / 2 - 16 : GAME_H / 2 - 70;
+    this.cardTitle.setY(cy);
+    this.cardSub.setY(cy + 50);
     this.cardTitle.setText(title).setAlpha(0).setScale(1.2);
     this.cardSub.setText(sub).setAlpha(0);
     this.tweens.add({ targets: this.cardTitle, alpha: 1, scale: 1, duration: 300, ease: 'Back.out' });
@@ -407,5 +412,7 @@ export class UIScene extends Phaser.Scene {
     this.brC.setPosition(touch ? -56 : 0, touch ? -(GAME_H - 108) : 0);
     this.districtText.setPosition(16, touch ? 108 : 12);
     this.objective.setPosition(16, touch ? 122 : 26);
+    if (touch) this.scoreText.setPosition(GAME_W / 2, 20).setOrigin(0.5, 0);
+    else this.scoreText.setPosition(GAME_W - 16, 20).setOrigin(1, 0);
   }
 }
