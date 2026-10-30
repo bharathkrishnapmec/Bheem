@@ -188,7 +188,7 @@ export class UIScene extends Phaser.Scene {
 
   /** Toasts sit below the boss bar (and the Creative style counter under it) while it is shown. */
   private toastTop(): number {
-    return this.bossOn ? 138 : 90;
+    return this.bossOn ? 150 : 90;
   }
 
   private toast(text: string, color: number): void {
@@ -212,8 +212,8 @@ export class UIScene extends Phaser.Scene {
 
   private card(title: string, sub: string, ms: number): void {
     this.tweens.killTweensOf([this.cardTitle, this.cardSub]);
-    // with the boss bar up, toasts stack from y=138, so the card drops below them
-    const cy = this.bossOn ? GAME_H / 2 - 16 : GAME_H / 2 - 70;
+    // with the boss bar up, toasts stack from y=150, so the card drops below them
+    const cy = this.bossOn ? GAME_H / 2 : GAME_H / 2 - 70;
     this.cardTitle.setY(cy);
     this.cardSub.setY(cy + 50);
     this.cardTitle.setText(title).setAlpha(0).setScale(1.2);
@@ -399,7 +399,7 @@ export class UIScene extends Phaser.Scene {
     this.styleT -= dt;
     if (this.styleT <= 0) this.styleN = 0;
     const st = this.styleText!;
-    st.setY(this.bossOn ? 112 : 58);
+    st.setY(this.bossOn ? 108 : 58);
     if (this.styleN >= 3) st.setText(STR.creative.style(this.styleN)).setAlpha(Math.min(1, this.styleT / 400));
     else st.setAlpha(0);
   }
