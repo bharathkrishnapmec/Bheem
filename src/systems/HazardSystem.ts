@@ -272,7 +272,9 @@ export class HazardSystem {
       const px = (gustPush(K.push * gu.dir, balance.player.runSpeed) * dt) / 1000;
       // never shove a grounded actor off a ledge on its own (v2 §A6.2)
       for (const a of [this.w.player, ...this.w.enemies, ...this.w.allies])
-        if (a.isAlive() && (!a.grounded || this.w.geo.hasGround(a.x + px + Math.sign(px) * (a.bodyW / 2), a.y, 12))) a.x += px;
+        if (a.isAlive() && (!a.grounded || this.w.geo.hasGround(a.x + px + Math.sign(px) * (a.bodyW / 2), a.y, 12)))
+          // direct x shift bypasses wall colliders, so keep it inside the level
+          a.x = Phaser.Math.Clamp(a.x + px, a.bodyW / 2, this.w.level.width - a.bodyW / 2);
       if (gu.t >= K.pushMs) {
         gu.g.destroy();
         this.gust = null;
