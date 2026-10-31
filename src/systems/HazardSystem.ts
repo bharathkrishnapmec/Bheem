@@ -96,7 +96,8 @@ export class HazardSystem {
       const body = this.moverGroup.create(r.x + r.w / 2, r.y + r.h / 2, 'fx_px') as Phaser.Physics.Arcade.Image;
       body.setVisible(false).setDisplaySize(r.w, r.h);
       const bb = body.body as Phaser.Physics.Arcade.Body;
-      bb.setSize(r.w, r.h, true).setAllowGravity(false).setImmovable(true);
+      // body size follows the display size; setSize() here would be multiplied by that scale again
+      bb.setAllowGravity(false).setImmovable(true);
       bb.checkCollision.down = bb.checkCollision.left = bb.checkCollision.right = false;
       bb.friction.set(1, 0);
       const vis = scene.add.tileSprite(r.x, r.y, r.w, 8, topKey).setOrigin(0).setDepth(24);

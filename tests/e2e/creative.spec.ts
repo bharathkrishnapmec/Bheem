@@ -91,7 +91,11 @@ test('creative: Nishachara from Boss Select, Lava Forge, clones in phase 2, resu
   await page.waitForTimeout(200);
   await card();
   await expect.poll(() => H<string>(page, 'h.creative().bossStage'), { timeout: 8_000 }).toBe('fight');
-  expect((await H<{ id: string }>(page, 'h.arena()')).id).toBe('lava_forge');
+  const arena = await H<{ id: string; moverBodies: { w: number; h: number; rw: number; rh: number }[] }>(page, 'h.arena()');
+  expect(arena.id).toBe('lava_forge');
+  // Moving-platform physics bodies must match their drawn planks (an oversized body is an invisible floor).
+  expect(arena.moverBodies.length).toBeGreaterThan(0);
+  for (const m of arena.moverBodies) expect([m.w, m.h]).toEqual([m.rw, m.rh]);
   expect(await H<number>(page, 'h.boss().max')).toBe(2600);
   await H(page, 'h.god()');
   for (let i = 0; i < 200 && (await H<number>(page, 'h.boss().phase')) < 2; i++) {

@@ -947,7 +947,7 @@ export class GameScene extends Phaser.Scene {
     const w = this.w;
     (window as unknown as { __BHEEM__: unknown }).__BHEEM__ = {
       scene: 'Game',
-      arena: () => ({ id: w.level.arenaId ?? 'village', zoom: w.cam.baseZoom, crumbles: w.hazards.crumbles.map((c) => c.c.state), movers: w.hazards.movers.length, gust: w.hazards.gustActive }),
+      arena: () => ({ id: w.level.arenaId ?? 'village', zoom: w.cam.baseZoom, crumbles: w.hazards.crumbles.map((c) => c.c.state), movers: w.hazards.movers.length, moverBodies: w.hazards.movers.map((m) => { const b = m.body.body as Phaser.Physics.Arcade.Body; return { w: Math.round(b.width), h: Math.round(b.height), rw: m.def.rect.w, rh: m.def.rect.h }; }), gust: w.hazards.gustActive }),
       setPlayer: (x: number, y: number) => {
         w.player.setPosition(x, y);
         w.player.body.reset(x, y);
