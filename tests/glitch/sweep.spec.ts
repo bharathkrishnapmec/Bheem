@@ -206,6 +206,20 @@ for (const [name, x] of [
     await H(page, 'h.god()');
     await page.waitForTimeout(600);
     await W.shot(`${name}-start`);
+    if (name === 'garjana') {
+      // airborne at each wall while a gust pushes outward: must stay inside the arena
+      for (const [px, dir] of [[2196, 1], [4, -1]] as const) {
+        await H(page, `h.gust(${dir})`);
+        for (let i = 0; i < 20; i++) {
+          await H(page, `h.setPlayer(${px}, 700)`);
+          await page.waitForTimeout(100);
+          await W.sample('gust-edge');
+          const x = (await H<{ x: number }>(page, 'h.player()')).x;
+          expect(x, 'gust pushed the player past the arena edge').toBeGreaterThanOrEqual(0);
+          expect(x, 'gust pushed the player past the arena edge').toBeLessThanOrEqual(2200);
+        }
+      }
+    }
     let lastPhase = 1;
     await W.play(name, 45000, async (i) => {
       if (i % 3 === 0) await H(page, 'h.hitBoss && h.hitBoss(45)');

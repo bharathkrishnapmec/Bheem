@@ -285,7 +285,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.scene.launch('UI');
-    this.scene.bringToTop('UI');
+    // UI sits just above Game so overlays launched later (Pause, Toolbox, results) draw over the HUD
+    this.scene.moveAbove('Game', 'UI');
     GameStore.markAll();
     AudioManager.setMusic('explore');
     if (!creative && data.bossPhase) {

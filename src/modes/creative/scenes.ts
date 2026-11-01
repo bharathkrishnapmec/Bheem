@@ -51,6 +51,10 @@ export abstract class MenuScene extends Phaser.Scene {
   }
   override update(): void {
     this.inp.update();
+    this.menuTick();
+  }
+  /** Menu handling for the current input frame; never re-polls input (that would eat edge-triggered presses). */
+  protected menuTick(): void {
     if (this.inp.state.back) return this.onBack();
     this.menu.update(this.inp.state);
   }
@@ -319,7 +323,7 @@ export class ToolboxScene extends MenuScene {
     this.inp.update();
     if (this.inp.state.toolboxPressed || this.inp.state.pausePressed) return this.onBack();
     if (this.moves && (this.inp.state.back || this.inp.state.confirm)) return this.toggleMoves();
-    super.update();
+    this.menuTick();
   }
   protected onBack(): void {
     this.scene.stop();

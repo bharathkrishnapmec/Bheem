@@ -46,6 +46,12 @@ test('creative: Toolbox + Boss Select by keyboard, phase-2 Kaalasura, result pan
   await page.waitForTimeout(300);
   await page.keyboard.press('Tab');
   await expect.poll(() => scene(page)).toBe('Toolbox');
+  // The Toolbox must render above the HUD (UI), not underneath it.
+  const order = await page.evaluate(() => {
+    const g = (window as unknown as { __GAME__: { scene: { getIndex(k: string): number } } }).__GAME__;
+    return { ui: g.scene.getIndex('UI'), toolbox: g.scene.getIndex('Toolbox') };
+  });
+  expect(order.toolbox).toBeGreaterThan(order.ui);
   await page.keyboard.press('Enter'); // God Mode ON
   await page.keyboard.press('Tab');
   await expect.poll(() => scene(page)).toBe('Game');
